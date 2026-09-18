@@ -329,7 +329,8 @@ optimization</a></li>
 Methodology and Expected Results</a>
 <ul>
 <li><a href="#datasets" id="toc-datasets">6.1 Datasets</a></li>
-<li><a href="#baselines" id="toc-baselines">6.2 Baselines</a></li>
+<li><a href="#baselines-and-comparison-protocol" id="toc-baselines-and-comparison-protocol">6.2 Baselines and comparison
+protocol</a></li>
 <li><a href="#metrics" id="toc-metrics">6.3 Metrics</a></li>
 <li><a href="#ablations" id="toc-ablations">6.4 Ablations</a></li>
 <li><a href="#hypotheses-and-expected-results" id="toc-hypotheses-and-expected-results">6.5 Hypotheses and expected
@@ -770,6 +771,24 @@ objective.</li>
 <li>Make compression and escalation compliance-bounded and
 auditable.</li>
 </ol>
+<p><strong>Why not just serve one large model?</strong> A fair
+objection: if the carrier hosts a capable 70B, why add a small model at
+all? Because the two costs are different. Training the large model is a
+one-time expense; <em>serving</em> it is a recurring per-request bill
+that dominates at scale, and it scales with model size — a 3–7B serves
+at roughly 10–20× lower cost per token than a 70B (Section 7). Insurance
+traffic is 80–90% routine and in-distribution, where a distilled
+specialist matches the large model’s task accuracy (it was distilled
+from it) while running far cheaper and faster. So the small model is not
+a budget compromise; it is an inference-efficiency layer that reserves
+the expensive tier for the 10–20% that genuinely needs it. The large
+model is still trained and still used — just not burned on every trivial
+request. The design inverts to a single large model precisely when its
+premises fail: volume below the break-even point (Section 7), a task
+distribution with no routine majority, or router/ops overhead exceeding
+the inference savings. Where those hold, one large model is the right
+call; insurance’s high-volume, routine-heavy distribution is why they
+usually do not.</p>
 <figure style="margin:2rem 0;">
 <svg viewBox="0 0 780 552" width="100%" style="max-width:720px;display:block;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;" role="img" aria-label="DAR architecture. An incoming document or turn enters a carrier boundary within which every component is self-hosted: IDP, a domain classifier and module registry, a tier plus continuation router that sends routine traffic to a distilled small model and the complex tail to a larger in-house model with a human gate, and a telemetry-driven re-distillation loop. No component calls an external API and no data leaves the boundary.">
 <defs>
@@ -941,6 +960,29 @@ decision: re-distill when the drift-induced escalation cost exceeds the
 amortized training cost <code>C_train/N_life</code>. This makes
 distillation a recurring, telemetry-driven operation rather than a
 one-off, which the distillation literature does not model.</p>
+<p><strong>What is the teacher?</strong> Because the whole design
+forbids data egress, the teacher must also be in-house. There are three
+sources of supervision, none of them an external API. (1) The
+<strong>in-house large model</strong> is the model teacher: the SLM
+distills its outputs on the routine distribution (MiniLLM/GKD,
+reverse-KL, on-policy), so the student is a cheap approximation of the
+large model on exactly the slice it will serve. (2) <strong>Historical
+human adjudications</strong> are the ground-truth teacher: the carrier’s
+past claims decisions and extractions supervise the large model
+(domain-adaptive SFT) and align the SLM (KTO/DPO on adjuster
+accept/reject labels) — the ultimate authority is the carrier’s own
+experts, not any model. (3) The <strong>escalation stream</strong> is
+the continuous teacher: every case the SLM escalates is resolved by the
+large model and, on hard cases, a human reviewer, and that
+<code>(input → answer)</code> pair becomes a fresh training example —
+automatically the hard, in-distribution cases the SLM currently fails.
+The large model itself starts from a strong open base (Llama/Qwen 70B)
+domain-adapted on the carrier corpus; it does not need a frontier
+teacher. The one optional exception is a cold-start for a domain with
+thin history, where synthetic instructions may be bootstrapped from a
+frontier model — but only at training time and only on
+<strong>de-identified</strong> data (Presidio), never at runtime and
+never on raw policyholder documents.</p>
 <h3 id="compliance-and-multilingual-design">4.6 Compliance and
 multilingual design</h3>
 <p>Auditability. Every decision carries its retrieved sources, the
@@ -977,7 +1019,7 @@ if state.escalated:
 <code>d</code>:</p>
 <pre><code>observe escalation_rate_d, L/R_d over window W
 if escalation_rate_d rising and (drift_escalation_cost_d &gt; C_train_d / N_life_d):
-    D_new ← teacher_label(recent_escalated_cases_d)     # teacher generates targets
+    D_new ← teacher_label(recent_escalated_cases_d)     # teacher = in-house large model + HITL corrections (no external API)
     adapter_d&#39; ← distill(base, D_new; MiniLLM/GKD) ; align(KTO on adjuster labels)
     quantize(adapter_d&#39;, 4bit) ; canary_eval(adapter_d&#39;)
     if canary passes: hot_swap(adapter_d ← adapter_d&#39;)  # S-LoRA, no redeploy</code></pre>
@@ -1050,6 +1092,44 @@ parameters about <span class="math inline">\(2 d r\)</span> per layer.
 QLoRA (arXiv:2305.14314) adds NF4, double quantization (~0.4 bit/param
 saved), and paged optimizers, fine-tuning 65B on one 48GB GPU at 16-bit
 quality. DoRA, PiSSA, rsLoRA, LoRA+, and VeRA refine it.</p>
+<p><strong>Why LoRA-style adapters and not another PEFT family.</strong>
+PEFT is a crowded field, and LoRA is not the only, or even always the
+most parameter-thrifty, choice — so the selection is deliberate rather
+than default. The alternatives fall into a few lines. <em>Adapter
+tuning</em> (Houlsby et al., arXiv:1902.00751) inserts small bottleneck
+modules but adds sequential layers that raise inference latency.
+<em>Prefix/prompt tuning</em> and P-tuning (arXiv:2101.00190,
+arXiv:2104.08691) prepend learned virtual tokens; they are extremely
+light and only match full fine-tuning once the base model is very large,
+and they consume context budget that insurance RAG prompts already
+stretch. <em>(IA)³</em> and <em>BitFit</em> scale or shift existing
+parameters for near-zero added weights but have a lower quality ceiling
+on the harder extraction/adjudication tasks. <em>ReFT/LoReFT</em>
+(arXiv:2404.03592) intervenes on hidden representations and can beat
+LoRA on parameter count at comparable quality, and <em>AdaLoRA</em>
+allocates rank by importance — both are promising but have far less
+mature serving support. Memory-efficient <em>full</em> fine-tuning
+(GaLore, arXiv:2403.03507; LISA) and <em>model merging</em> (TIES/DARE
+via mergekit) produce a single monolithic checkpoint per domain, which
+is exactly what a multi-domain carrier must avoid: it forfeits hot-swap
+and forces a full model reload or a separate replica per line of
+business.</p>
+<p>The decisive criterion for DAR is not training efficiency in
+isolation but <strong>multi-adapter serving economics</strong>, because
+the design keeps one base model resident and swaps a per-domain adapter
+per request. Here LoRA-style adapters are uniquely well supported:
+S-LoRA (arXiv:2311.03285) serves thousands of adapters concurrently from
+a single base with unified paging, and Punica (arXiv:2310.18547) batches
+requests across <em>different</em> adapters through a custom kernel
+(SGMV), keeping per-token cost near-constant as the number of domains
+grows (the basis for H4). No other PEFT family has production serving
+stacks that hot-swap and batch heterogeneous adapters this way. LoRA
+also merges losslessly into <span class="math inline">\(W_0\)</span> for
+latency-critical single-domain paths and detaches again for shared
+serving — flexibility the monolithic and representation-intervention
+methods lack. DAR therefore standardizes on LoRA/QLoRA adapters, while
+treating DoRA, rsLoRA, and LoReFT as drop-in per-adapter upgrades that
+preserve the same serving contract.</p>
 <h3 id="preference-optimization">5.2 Preference optimization</h3>
 <p>DPO (arXiv:2305.18290):</p>
 <p><span class="math display">\[ \mathcal{L}_{\text{DPO}} \;=\;
@@ -1066,10 +1146,15 @@ naturally.</p>
 <p>MiniLLM (arXiv:2306.08543) minimizes reverse KL
 <code>KL(π_student‖π_teacher)</code> on-policy; GKD (arXiv:2306.13649)
 scores student generations with the teacher; DistiLLM (arXiv:2402.03898)
-adds skew-KL for 4.3× faster distillation. The DAR recipe: teacher
-labels claims decisions and extractions, distill to a 3–7B student
-(MiniLLM/GKD), align with KTO on adjuster labels, quantize 4-bit, serve
-on multi-adapter vLLM.</p>
+adds skew-KL for 4.3× faster distillation. The DAR recipe (teacher
+defined in Section 4.5): the <strong>in-house large model</strong>
+labels claims decisions and extractions — seeded and validated by
+<strong>historical human adjudications</strong> and grown by the
+<strong>escalation stream</strong> — the 3–7B student distills those
+outputs (MiniLLM/GKD), aligns with KTO on adjuster accept/reject labels,
+quantizes 4-bit, and serves on multi-adapter vLLM. No frontier API is in
+this loop; any synthetic cold-start data is de-identified and used only
+at training time.</p>
 <h3 id="serving-internals">5.4 Serving internals</h3>
 <p>PagedAttention/vLLM (arXiv:2309.06180): KV fragmentation under 4%,
 14–24× over HF. Multi-adapter: S-LoRA (arXiv:2311.03285, thousands of
@@ -1132,16 +1217,65 @@ selection; FUNSD, CORD, DocVQA, DocLayNet as proxies for form
 extraction; FinancialPhraseBank/TFNS (via FinGPT) for finance NLP.
 Proposed carrier corpus: historical claims with adjudicator decisions
 and extractions, split by line of business, with human labels as ground
-truth for task resolution. Teacher-generated synthetic data
-(Evol-Instruct style) for distillation targets, decontaminated against
-test sets.</p>
-<h3 id="baselines">6.2 Baselines</h3>
-<p>Routing: single frontier API (the status quo being replaced); single
-large in-house model; single distilled SLM; RouteLLM (matrix
-factorization and BERT); FrugalGPT cascade; Hybrid LLM; AutoMix.
-Serving: vLLM baseline vs S-LoRA vs Punica for multi-adapter throughput.
-IDP: LayoutLMv3 and Donut for extraction. These baselines let each DAR
-component be isolated.</p>
+truth for task resolution. Distillation targets come from the in-house
+large-model teacher over this corpus and the live escalation stream
+(Section 4.5); any Evol-Instruct-style synthetic data is a
+de-identified, training-time-only cold-start for thin domains,
+decontaminated against test sets. No distillation data is generated by
+an external API on raw policyholder documents.</p>
+<h3 id="baselines-and-comparison-protocol">6.2 Baselines and comparison
+protocol</h3>
+<p><strong>Primary baseline — the frontier-API status quo.</strong> DAR
+is a <em>replacement</em> for sending insurance workloads to a frontier
+API, so the reference point every headline claim is measured against is
+a single frontier model (e.g. a GPT-4-class or Claude-class API)
+answering the full workload with the same RAG context and prompts, no
+routing. This is the incumbent DAR must beat on cost while matching on
+task resolution; it is also the <em>quality ceiling</em> against which
+the “same accuracy” claim is falsified or confirmed. Because the thesis
+is that a fully in-house stack equals frontier quality at lower cost,
+this baseline is reported first and drives the go/no-go decision.</p>
+<p><strong>Secondary baselines — existing methods and single-model
+controls.</strong> To attribute DAR’s gains to its specific design
+rather than to routing in general, we compare against: (i)
+<em>single-model controls</em> — one large in-house model alone (the
+in-house quality ceiling and cost worst case) and one distilled SLM
+alone (the cost floor and quality worst case), which bracket every
+routed system; and (ii) <em>prior routing/cascade methods reimplemented
+on the same in-house tiers</em> — RouteLLM (matrix-factorization and
+BERT routers), FrugalGPT’s cascade, Hybrid LLM, and AutoMix.
+Reimplementing these on our own SLM/large-model pair (rather than their
+published API pairs) isolates the contribution of DAR’s domain-modular
+adapters, two-stage routing, and continuation routing from the routing
+idea itself. Component baselines: serving — vLLM vs S-LoRA vs Punica for
+multi-adapter throughput; IDP — LayoutLMv3 and Donut for extraction.</p>
+<p><strong>How the comparison is run.</strong> All systems are evaluated
+on a held-out carrier test set with human-adjudicator decisions and
+extractions as ground truth, stratified by line of business and by
+routine/complex difficulty, plus the public proxies (Section 6.1) for
+reproducibility. Two complementary comparisons are made against each
+baseline. <em>Iso-quality:</em> fix task-resolution accuracy within a
+tolerance <span class="math inline">\(\delta\)</span> of the frontier
+baseline and compare cost per resolved task — the operationally decisive
+number. <em>Iso-cost:</em> fix the per-task cost budget and compare
+resolution quality. Cost/quality is then traced as a <strong>Pareto
+frontier</strong> by sweeping the routing threshold <span class="math inline">\(\tau\)</span>; DAR must sit on or above the
+frontier defined by the secondary baselines and reach the frontier-API
+quality point at strictly lower cost. Against RouteLLM specifically we
+report <strong>PGR/APGR</strong> with the endpoints pinned to
+<em>this</em> stack — weak = distilled SLM alone, strong = in-house
+large model — and <strong>CPT(x%)</strong> at x ∈ {50, 80}, so the
+numbers are comparable to the 0.802 APGR / 3.66× literature figures.
+Statistical treatment: cost and accuracy differences carry bootstrap 95%
+confidence intervals over test items; paired resolution comparisons use
+McNemar’s test on per-item correctness; every reported gap is a paired
+difference on the same items, not a comparison of separately tuned runs.
+<strong>Decision rule (falsifiable):</strong> DAR passes only if it
+matches the frontier-API baseline’s resolution within <span class="math inline">\(\delta\)</span> (CI excludes a drop larger than
+<span class="math inline">\(\delta\)</span>) <em>and</em> delivers a
+statistically significant cost-per-resolved-task reduction; if it
+cannot, the in-house-replacement thesis is rejected for that line of
+business.</p>
 <h3 id="metrics">6.3 Metrics</h3>
 <p>Task resolution accuracy against human adjudicators; APGR and CPT(x%)
 (RouteLLM); AIQ (RouterBench); cost per resolved task (dollars, Section
@@ -1416,10 +1550,13 @@ specialize.</p>
 2404.14618, AutoMix 2310.12963, RouterBench 2403.12031, GraphRouter
 2410.03834, RouterDC 2409.19886.</p>
 <p>PEFT, preference, distillation: LoRA 2106.09685, QLoRA 2305.14314,
-DoRA 2402.09353, DPO 2305.18290, ORPO 2403.07691, KTO 2402.01306, SimPO
-2405.14734, GRPO/DeepSeekMath 2402.03300, MiniLLM 2306.08543, GKD
-2306.13649, DistiLLM 2402.03898, Evol-Instruct 2304.12244, DAPT
-2004.10964, Model Cards 1810.03993.</p>
+DoRA 2402.09353, AdaLoRA 2303.10512, VeRA 2310.11454, Adapter/Houlsby
+1902.00751, Prefix-Tuning 2101.00190, Prompt-Tuning 2104.08691,
+(IA)³/T-Few 2205.05638, BitFit 2106.10199, ReFT/LoReFT 2404.03592,
+GaLore 2403.03507, mergekit/TIES 2306.01708, DPO 2305.18290, ORPO
+2403.07691, KTO 2402.01306, SimPO 2405.14734, GRPO/DeepSeekMath
+2402.03300, MiniLLM 2306.08543, GKD 2306.13649, DistiLLM 2402.03898,
+Evol-Instruct 2304.12244, DAPT 2004.10964, Model Cards 1810.03993.</p>
 <p>Serving: PagedAttention/vLLM 2309.06180, S-LoRA 2311.03285, Punica
 2310.18547, GPTQ 2210.17323, AWQ 2306.00978, SmoothQuant 2211.10438,
 SqueezeLLM 2306.07629, speculative decoding 2211.17192, Medusa
