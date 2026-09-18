@@ -688,26 +688,85 @@ auditable.</li>
 <li>Prefer self-hosting where economics and regulation agree (notably in
 India).</li>
 </ol>
-<pre><code>                         ┌─────────────────────────────────────────────┐
-   intake (doc/turn) ──▶ │ IDP: Docling/Donut → guided-decode schema     │
-                         └───────────────┬─────────────────────────────┘
-                                         ▼
-                         ┌───────────────────────────┐   ┌────────────────────────┐
-                         │ Domain classifier          │──▶│ Domain module registry  │
-                         │ (keywords/embeddings/channel)│  │ adapter+RAG+profile     │
-                         └───────────────┬───────────┘   └────────────────────────┘
-                                         ▼
-              ┌──────────────────────────────────────────────────────┐
-              │ Tier router (predictive) + continuation router (turns) │
-              └───────┬───────────────────────────────────┬──────────┘
-                      ▼ routine                            ▼ complex / low-confidence
-     ┌──────────────────────────────┐        ┌──────────────────────────────────┐
-     │ distilled SLM 3–7B (LoRA)     │        │ frontier / Llama-70B  + HITL gate  │
-     │ vLLM multi-LoRA (S-LoRA)      │        │ (calibrated confidence)            │
-     └───────────────┬──────────────┘        └───────────────┬───────────────────┘
-                     └──────────────── telemetry (L/R, s, cost) ──────────┐
-                                                                          ▼
-                                          re-distillation trigger (drift → new adapter)</code></pre>
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 780 545" width="100%" style="max-width:720px;display:block;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,Helvetica,Arial,sans-serif;" role="img" aria-label="DAR architecture: intake and IDP feed a domain classifier and module registry, then a tier plus continuation router splits routine traffic to a distilled SLM and complex traffic to a frontier model with a human gate; telemetry drives a re-distillation loop back into the registry.">
+<p><defs>
+<marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#2d5bd7" /></marker>
+<marker id="ard" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#8b93a3" /></marker>
+</defs></p>
+<!-- intake -->
+<p><rect x="300" y="18" width="180" height="34" rx="17" fill="#eef2fd" stroke="#2d5bd7" />
+<text x="390" y="40" text-anchor="middle" font-size="13.5" fill="#1a3a8f">Intake
+— document / turn</text>
+<line x1="390" y1="52" x2="390" y2="80" stroke="#2d5bd7" stroke-width="1.5" marker-end="url(#ar)"></line></p>
+<!-- IDP -->
+<p><rect x="250" y="82" width="280" height="52" rx="8" fill="#eef2fd" stroke="#2d5bd7" />
+<text x="390" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a3a8f">IDP</text>
+<text x="390" y="123" text-anchor="middle" font-size="12" fill="#3a4a6a">Docling
+/ Donut → guided-decode schema</text>
+<line x1="390" y1="134" x2="390" y2="160" stroke="#2d5bd7" stroke-width="1.5" marker-end="url(#ar)"></line></p>
+<!-- classifier + registry -->
+<p><rect x="118" y="162" width="252" height="56" rx="8" fill="#eef2fd" stroke="#2d5bd7" />
+<text x="244" y="184" text-anchor="middle" font-size="13" font-weight="700" fill="#1a3a8f">Domain
+classifier</text>
+<text x="244" y="203" text-anchor="middle" font-size="11.5" fill="#3a4a6a">keywords
+· embeddings · channel</text></p>
+<p><rect x="410" y="162" width="272" height="56" rx="8" fill="#fafbfc" stroke="#b9c0d0" />
+<text x="546" y="184" text-anchor="middle" font-size="13" font-weight="700" fill="#24304a">Domain
+module registry</text>
+<text x="546" y="203" text-anchor="middle" font-size="11.5" fill="#5b6472">adapter
++ RAG + profile</text></p>
+<p><line x1="370" y1="190" x2="406" y2="190" stroke="#2d5bd7" stroke-width="1.5" marker-end="url(#ar)"></line>
+<line x1="244" y1="218" x2="244" y2="248" stroke="#2d5bd7" stroke-width="1.5" marker-end="url(#ar)"></line>
+<line x1="546" y1="218" x2="546" y2="248" stroke="#8b93a3" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ard)"></line>
+<text x="560" y="238" font-size="10.5" fill="#8b93a3">config</text></p>
+<!-- router -->
+<p><rect x="118" y="250" width="564" height="60" rx="8" fill="#e3e9fb" stroke="#2d5bd7" stroke-width="1.4" />
+<text x="400" y="274" text-anchor="middle" font-size="14" font-weight="700" fill="#163079">Tier
+router + continuation router</text>
+<text x="400" y="294" text-anchor="middle" font-size="11.5" fill="#3a4a6a">predictive
+gate · cascade check · escalate-when-stuck /
+relax-when-converged</text></p>
+<!-- branches -->
+<p><line x1="290" y1="310" x2="248" y2="348" stroke="#2a9d5a" stroke-width="1.5" marker-end="url(#ar)"></line>
+<text x="150" y="333" font-size="11" font-weight="600" fill="#2a9d5a">routine</text>
+<line x1="510" y1="310" x2="552" y2="348" stroke="#d08a12" stroke-width="1.5" marker-end="url(#ar)"></line>
+<text x="562" y="333" font-size="11" font-weight="600" fill="#c07a10">complex
+/ low-confidence</text></p>
+<!-- SLM -->
+<p><rect x="110" y="350" width="250" height="68" rx="8" fill="#e8f6ee" stroke="#2a9d5a" />
+<text x="235" y="378" text-anchor="middle" font-size="13" font-weight="700" fill="#14572f">Distilled
+SLM · 3–7B (LoRA)</text>
+<text x="235" y="398" text-anchor="middle" font-size="12" fill="#2f6a44">vLLM
+multi-LoRA (S-LoRA)</text></p>
+<!-- frontier -->
+<p><rect x="420" y="350" width="262" height="68" rx="8" fill="#fdf1e0" stroke="#d08a12" />
+<text x="551" y="378" text-anchor="middle" font-size="13" font-weight="700" fill="#7a4d05">Frontier
+/ Llama-70B + HITL gate</text>
+<text x="551" y="398" text-anchor="middle" font-size="12" fill="#8a5c12">calibrated
+confidence</text></p>
+<!-- telemetry into re-distillation -->
+<p><path d="M235,418 L235,440 L400,440" fill="none" stroke="#8b93a3" stroke-width="1.3" stroke-dasharray="4 3" />
+<path d="M551,418 L551,440 L400,440" fill="none" stroke="#8b93a3" stroke-width="1.3" stroke-dasharray="4 3" />
+<path d="M400,440 L400,456" fill="none" stroke="#8b93a3" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ard)" />
+<text x="400" y="434" text-anchor="middle" font-size="10.5" fill="#5b6472">telemetry
+— L/R, s, cost</text></p>
+<!-- re-distillation -->
+<p><rect x="250" y="458" width="300" height="54" rx="8" fill="#fbeef0" stroke="#c0405a" />
+<text x="400" y="480" text-anchor="middle" font-size="13" font-weight="700" fill="#7a1526">Re-distillation
+trigger</text>
+<text x="400" y="499" text-anchor="middle" font-size="11.5" fill="#9a3346">drift
+→ new adapter (hot-swap into registry)</text></p>
+<!-- loop back to registry -->
+<path d="M550,485 L722,485 L722,190 L686,190" fill="none" stroke="#c0405a" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ard)" />
+<text x="713" y="340" text-anchor="middle" font-size="10.5" fill="#9a3346" transform="rotate(-90 713 340)">updated
+adapter</text>
+</svg>
+<figcaption style="text-align:center;font-size:13px;color:#5b6472;margin-top:.6rem;">
+Figure 1. Domain-Modular Distill-and-Route (DAR): request flow (solid)
+and the closed re-distillation loop (dashed).
+</figcaption>
+</figure>
 <h3 id="the-domain-module">4.2 The domain module</h3>
 <p>A domain (line of business: Auto, Home, Health, Life, Commercial
 P&amp;C, Workers’ Comp, Cyber) is a registry entry of three parts: a
@@ -715,21 +774,21 @@ LoRA adapter on the shared base, a retrieval collection, and a config
 profile (document schema, guardrails, router threshold, escalation
 model, keywords). All three hot-swap on shared infrastructure, so adding
 a line adds an adapter, not a GPU.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">domains</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">auto</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/auto-claims-3b-v4</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> auto_policies</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/auto_fnol.json</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> auto_coverage_check</span><span class="kw">]</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.82</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">collision</span><span class="kw">,</span><span class="at"> vehicle</span><span class="kw">,</span><span class="at"> vin</span><span class="kw">,</span><span class="at"> at-fault</span><span class="kw">]</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">workers_comp</span><span class="kw">:</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/wc-claims-3b-v2</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> wc_regulations</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/wc_froi.json</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> phi</span><span class="kw">,</span><span class="at"> jurisdiction_check</span><span class="kw">]</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.90</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">injury</span><span class="kw">,</span><span class="at"> employer</span><span class="kw">,</span><span class="at"> froi</span><span class="kw">,</span><span class="at"> return-to-work</span><span class="kw">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">domains</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">auto</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/auto-claims-3b-v4</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> auto_policies</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/auto_fnol.json</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> auto_coverage_check</span><span class="kw">]</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.82</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">collision</span><span class="kw">,</span><span class="at"> vehicle</span><span class="kw">,</span><span class="at"> vin</span><span class="kw">,</span><span class="at"> at-fault</span><span class="kw">]</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">workers_comp</span><span class="kw">:</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/wc-claims-3b-v2</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> wc_regulations</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/wc_froi.json</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> phi</span><span class="kw">,</span><span class="at"> jurisdiction_check</span><span class="kw">]</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.90</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">injury</span><span class="kw">,</span><span class="at"> employer</span><span class="kw">,</span><span class="at"> froi</span><span class="kw">,</span><span class="at"> return-to-work</span><span class="kw">]</span></span></code></pre></div>
 <p>Two composition axes exist: line of business and workflow
 (underwriting, FNOL, servicing, fraud). Compose them with paired keys
 (<code>auto/claims</code>) or stacked adapters (base + line-LoRA +
