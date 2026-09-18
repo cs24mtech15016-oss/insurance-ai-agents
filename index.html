@@ -903,6 +903,31 @@ the quality gap) for low latency, with a cascade fallback
 (FrugalGPT-style scorer) when predictive confidence is low. Real-time
 FNOL uses the predictive path; batch document processing can afford the
 cascade.</p>
+<p><strong>Why not a single semantic router for the cost
+decision?</strong> Semantic routing (Aurelio’s semantic-router, ~10ms)
+matches a query to the nearest prototype-utterance cluster by embedding
+cosine similarity, and DAR uses exactly this for stage 1 — picking the
+domain is a topic/intent question it answers well and cheaply. It is the
+wrong instrument for the stage-2 cost decision for four reasons. (i)
+<em>Difficulty is not a semantic property.</em> The cost decision needs
+the SLM-vs-large quality gap on this specific input; two claims on the
+same topic sit at nearly the same embedding point yet one is trivial and
+one needs the large model, so a similarity router cannot separate them.
+(ii) <em>It is static and model-agnostic.</em> Prototype clusters do not
+know which cases the current distilled adapter resolves, and as
+re-distillation raises <span class="math inline">\(s\)</span> the
+cheap/expensive boundary moves; a learned predictive router trained on
+tier win/loss labels tracks that moving frontier, whereas semantic
+clusters would need relabeling every re-distillation cycle. (iii) <em>No
+calibrated cost knob.</em> Cost-Ops needs a tunable <span class="math inline">\(\tau\)</span> to hit a cost budget or accuracy
+floor on the Pareto curve and a calibrated <span class="math inline">\(P(\text{SLM correct})\)</span> for the HITL gate
+(ECE matters); cosine similarity to a prototype is neither. (iv) <em>It
+discards post-generation evidence.</em> Cascades judge the generated
+answer (self-verification, self-consistency), the strongest difficulty
+signal, which exists only after a cheap attempt; semantic routing
+decides pre-generation on the prompt alone. Hence the two-stage split:
+semantic routing on the topic axis, a calibrated predictive router plus
+cascade fallback on the difficulty/cost axis.</p>
 <h3 id="continuation-routing-multi-turn">4.4 Continuation routing
 (multi-turn)</h3>
 <p>Insurance cases are multi-turn: a claim is triaged, questioned,
@@ -1178,6 +1203,28 @@ Routing concentrates traffic on the SLM, enlarging batches and raising
 <code>U</code>, so the router L/R and this serving L/R improve the same
 cost line. Serve interactive (FNOL, chat) and batch (indexing) traffic
 on separate queues.</p>
+<p>Model balancing (distinct from quality routing). Two mechanisms share
+the name “routing” and must be kept separate: the <em>quality/cost
+router</em> (Section 4.3) chooses the tier and adapter by difficulty;
+<em>load balancing</em> chooses the replica or GPU once a tier is fixed,
+by queue depth and utilization. A gateway (LiteLLM or an equivalent
+proxy) is the single ingress and does weighted least-busy balancing
+across replicas of each tier, plus retries, fallbacks, per-tenant
+budgets, and rate limits. Balancing is <em>adapter-affinity aware</em>:
+because S-LoRA/Punica hold one base with many adapters resident, a
+request is preferentially sent to a replica that already has its
+domain’s adapter loaded (avoiding swap-in), while Punica’s SGMV kernel
+still lets a single replica batch mixed-adapter requests; hot domains
+get their adapters replicated across more GPUs and thin domains share.
+The SLM pool and the in-house large-model pool are independent
+autoscaling groups, scaled on goodput and queue depth rather than raw
+QPS (HPA/KEDA on DCGM utilization): the SLM pool tracks routine volume
+<span class="math inline">\(p\)</span>, and the large-model pool is
+sized for the escalation fraction <span class="math inline">\((1-p\,s)\)</span> plus headroom. Under load spikes
+the system applies backpressure — queueing batch work or shedding by
+priority and tightening <span class="math inline">\(\tau\)</span> —
+rather than silently mass-escalating, so a traffic surge cannot blow the
+cost budget.</p>
 <h3 id="routing-metrics-and-the-light-to-heavy-ratio">5.5 Routing
 metrics and the light-to-heavy ratio</h3>
 <p>The literature standardized on quality-at-cost curves: PGR/APGR/CPT
