@@ -237,6 +237,17 @@ Commercial vendors</a></li>
 <li><a href="#where-the-open-source-gap-is" id="toc-where-the-open-source-gap-is">2.2 Where the open-source gap
 is</a></li>
 </ul></li>
+<li><a href="#chapter-2a-the-indian-market" id="toc-chapter-2a-the-indian-market">Chapter 2A — The Indian Market</a>
+<ul>
+<li><a href="#a.1-paid-products-sold-in-india-b2b" id="toc-a.1-paid-products-sold-in-india-b2b">2A.1 Paid products sold in
+India (B2B)</a></li>
+<li><a href="#a.2-b2c-platforms" id="toc-a.2-b2c-platforms">2A.2 B2C
+platforms</a></li>
+<li><a href="#a.3-regulatory-and-digital-infrastructure-context" id="toc-a.3-regulatory-and-digital-infrastructure-context">2A.3
+Regulatory and digital-infrastructure context</a></li>
+<li><a href="#a.4-what-this-changes-in-the-open-source-design" id="toc-a.4-what-this-changes-in-the-open-source-design">2A.4 What this
+changes in the open-source design</a></li>
+</ul></li>
 <li><a href="#chapter-3-open-source-reference-architecture" id="toc-chapter-3-open-source-reference-architecture">Chapter 3 —
 Open-Source Reference Architecture</a></li>
 <li><a href="#chapter-4-model-ops-training-domain-llms-and-slms" id="toc-chapter-4-model-ops-training-domain-llms-and-slms">Chapter 4 —
@@ -463,6 +474,166 @@ above are self-reported and directional.</p>
 <p>Two names sometimes cited in this space were excluded as unverifiable
 in current form: “Sixfold” (pivoted to logistics) and “Gradient AI”
 (ambiguous redirect).</p>
+<hr />
+<h2 id="chapter-2a-the-indian-market">Chapter 2A — The Indian
+Market</h2>
+<p>India is a distinct market, not a variant of the U.S. one. It is
+regulated by the IRDAI rather than by state regulators, it runs on
+public digital infrastructure (Aadhaar, DigiLocker, Account Aggregator)
+that most other markets lack, health-claims processing is being
+standardized nationally through NHCX, and any consumer-facing system has
+to work across many languages under the DPDP Act. These four facts
+change both the product landscape and the way you would build on open
+source.</p>
+<h3 id="a.1-paid-products-sold-in-india-b2b">2A.1 Paid products sold in
+India (B2B)</h3>
+<p>The strongest India-native paid products are B2B: platforms sold to
+insurers, TPAs, banks (bancassurance), and brokers. Claims below are
+vendor-reported.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Company</th>
+<th>AI product</th>
+<th>What it does</th>
+<th>Customers (reported)</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Perfios (perfios.ai)</td>
+<td>Acclaim, iAdore, fraud detection</td>
+<td>Health-claims extraction and analytics, automated underwriting, ML
+fraud scoring</td>
+<td>Bajaj Allianz</td>
+<td>Enterprise SaaS / API</td>
+</tr>
+<tr>
+<td>Zopper</td>
+<td>ZENOVA + embedded-insurance APIs</td>
+<td>Agentic bancassurance assistant, embedded distribution</td>
+<td>Bank of Baroda, Axis Bank, IDFC First Bank; ICICI Lombard (insurer
+partner)</td>
+<td>B2B distribution platform</td>
+</tr>
+<tr>
+<td>Riskcovry</td>
+<td>AI recommendation engine, AI workflows (MCP server)</td>
+<td>Insurance infrastructure, product recommendation,
+embedded/retail/lending flows</td>
+<td>40+ insurers pre-integrated (unnamed)</td>
+<td>B2B SaaS infrastructure</td>
+</tr>
+<tr>
+<td>Signzy</td>
+<td>India Stack KYC/KYB, Video KYC, agentic CKYC, deepfake
+detection</td>
+<td>Digital onboarding and identity for regulated financial
+products</td>
+<td>Banking/fintech named; insurance implied</td>
+<td>API marketplace / SaaS</td>
+</tr>
+<tr>
+<td>Mantra Labs</td>
+<td>Insurance AI engineering and consulting</td>
+<td>Lead management, CX, digital-transformation delivery</td>
+<td>SBI General Insurance, Canara HSBC Life</td>
+<td>Professional services</td>
+</tr>
+<tr>
+<td>Vymo</td>
+<td>Sales-engagement AI</td>
+<td>Agent productivity and distribution for insurers</td>
+<td>Not detailed publicly</td>
+<td>B2B SaaS</td>
+</tr>
+</tbody>
+</table>
+<p>Two vendors frequently named in Indian health-claims automation,
+Vitraya Technologies (cashless claims auto-adjudication) and
+Artivatic.ai / ALFRED AI (underwriting and claims), could not be
+independently verified in this pass and are noted here without
+endorsement. Kanverse.ai offers insurance document processing but
+appears U.S.-focused, with no documented Indian insurance customers.</p>
+<h3 id="a.2-b2c-platforms">2A.2 B2C platforms</h3>
+<p>The consumer side is dominated by aggregators and digital insurers:
+PolicyBazaar (PB Fintech), Acko, Go Digit, InsuranceDekho, Turtlemint,
+and RenewBuy, plus health insurers such as Star Health. These emphasize
+fast, paperless digital journeys (Star Health reports 96% cashless
+approvals within three hours; Acko cites a seven-minute fastest
+settlement), but most do not describe the underlying AI on their public
+sites, so treat any capability inference cautiously.</p>
+<h3 id="a.3-regulatory-and-digital-infrastructure-context">2A.3
+Regulatory and digital-infrastructure context</h3>
+<p>IRDAI and “Insurance for All by 2047.” The regulator’s stated goal is
+universal insurance coverage by 2047, which is driving open,
+interoperable infrastructure rather than closed carrier stacks.</p>
+<p>Bima Sugam. An IRDAI-backed unified insurance marketplace intended to
+be an interoperable platform for buying, servicing, and settling
+policies across insurers. Detailed specifications were not publicly
+retrievable at the time of writing.</p>
+<p>NHCX (National Health Claims Exchange). Part of the Ayushman Bharat
+Digital Mission, NHCX is a national exchange for interoperable
+health-claims processing with standardized formats. This makes
+health-claims adjudication the highest-value AI workflow in India and,
+because the schemas are standardized, a good fit for schema-constrained
+extraction (guided decoding, 4B.5).</p>
+<p>India Stack. Aadhaar eKYC (cited to reduce KYC cost from roughly $23
+to about $0.15 per verification), DigiLocker for verified documents, and
+the Account Aggregator framework (DEPA) for consent-based data sharing.
+Together these cut onboarding friction and give an insurer consented
+access to financial data for underwriting.</p>
+<p>DPDP Act 2023. India’s data-protection law is consent-first and,
+unlike GDPR, has no “legitimate interest” basis, so processing generally
+needs explicit consent. Consent notices must be available in the
+scheduled languages, cross-border transfer is conditional rather than
+blanket-restricted, and breaches carry large financial penalties. The
+practical effect for AI systems is a strong pull toward in-country,
+self-hosted deployment with full audit logs.</p>
+<p>Language. The DPDP Act’s multilingual consent requirement, plus a
+consumer base across many regional languages, means models have to
+handle Hindi and major regional languages, not just English.</p>
+<h3 id="a.4-what-this-changes-in-the-open-source-design">2A.4 What this
+changes in the open-source design</h3>
+<p>The India-specific facts reinforce, rather than replace, the
+architecture in the rest of this study, and sharpen a few choices.</p>
+<p>Self-hosting is favored by regulation, not only cost. DPDP’s
+consent-first regime and the sensitivity of health data push toward
+in-country, self-hosted inference with complete audit trails. This is
+the same conclusion Chapters 4 and 5B reach on economics, so in India
+the compliance and cost arguments align.</p>
+<p>Health-claims adjudication is the first workflow to build. NHCX
+standardizes claim formats nationally, which makes automated cashless
+adjudication both high-value and technically tractable: standardized
+schemas map directly onto guided decoding (4B.5) and validation, and the
+routine-versus-complex split (Chapter 1) is pronounced in health
+claims.</p>
+<p>The language layer needs Indic models. For the multilingual
+requirement, the open-source path is a multilingual base such as Qwen
+2.5 combined with Indic-specific resources: AI4Bharat’s IndicTrans2
+(translation) and IndicBERT/Indic embeddings, and the government’s
+Bhashini language stack. Route by language at the front door alongside
+the domain classifier (Chapter 8), and keep per-language evaluation,
+since quality varies sharply across languages.</p>
+<p>Interoperability shapes integration, not the models. Bima Sugam and
+NHCX mean the system must speak standardized exchange formats. That is
+an adapter-and-schema concern at the orchestration and IDP layers, and
+does not change the Model Ops or Cost Ops design.</p>
+<p>Sources (India, vendor and regulatory): perfios.ai, zopper.com,
+riskcovry.com, signzy.com, mantralabsglobal.com, vymo.com; irdai.gov.in,
+abdm.gov.in, indiastack.org, uidai.gov.in, digilocker.gov.in; DPDP Act
+2023. Vendor claims are vendor-reported; several government
+specifications (Bima Sugam, NHCX) were not publicly retrievable and
+should be confirmed against primary IRDAI/NHA sources before relying on
+them.</p>
 <hr />
 <h2 id="chapter-3-open-source-reference-architecture">Chapter 3 —
 Open-Source Reference Architecture</h2>
