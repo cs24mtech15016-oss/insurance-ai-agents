@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Insurance AI Agents on OSS — Model Ops &amp; Cost Ops</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">
+:root {
+--ink: #1a1a2e;
+--muted: #5b6472;
+--accent: #2d5bd7;
+--accent-soft: #eef2fd;
+--line: #e6e8ee;
+--code-bg: #f6f8fa;
+--sidebar-bg: #fafbfc;
+--maxread: 820px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+color: var(--ink);
+line-height: 1.68;
+font-size: 17px;
+margin: 0;
+padding: 3.2rem 3rem 6rem calc(320px + 3rem);
+max-width: calc(320px + 3rem + var(--maxread) + 3rem);
+background: #fff;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
+}
+
+#TOC {
+position: fixed;
+top: 0; left: 0; bottom: 0;
+width: 320px;
+overflow-y: auto;
+padding: 2rem 1.4rem;
+background: var(--sidebar-bg);
+border-right: 1px solid var(--line);
+font-size: 13.5px;
+line-height: 1.5;
+}
+#TOC::before {
+content: "Contents";
+display: block;
+font-size: 11px;
+letter-spacing: .12em;
+text-transform: uppercase;
+color: var(--muted);
+font-weight: 700;
+margin-bottom: .9rem;
+}
+#TOC ul { list-style: none; padding-left: 0; margin: 0; }
+#TOC ul ul { padding-left: .9rem; }
+#TOC li { margin: .12rem 0; }
+#TOC a {
+color: var(--muted);
+text-decoration: none;
+display: block;
+padding: 2px 6px;
+border-radius: 5px;
+border-left: 2px solid transparent;
+}
+#TOC a:hover { color: var(--accent); background: var(--accent-soft); }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 700; color: var(--ink); }
+h1 { font-size: 2.0rem; margin: 0 0 .4rem; letter-spacing: -.01em; }
+h2 {
+font-size: 1.5rem;
+margin: 2.8rem 0 1rem;
+padding-bottom: .4rem;
+border-bottom: 2px solid var(--line);
+}
+h3 { font-size: 1.18rem; margin: 2rem 0 .7rem; color: #24304a; }
+h4 { font-size: 1rem; margin: 1.4rem 0 .5rem; color: var(--muted); }
+p { margin: .85rem 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { color: #12203d; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2.6rem 0; }
+
+h1 + h3 { color: var(--muted); font-weight: 500; margin-top: 0; }
+
+code {
+font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+font-size: .86em;
+background: var(--code-bg);
+padding: .12em .4em;
+border-radius: 5px;
+}
+pre {
+background: var(--code-bg);
+border: 1px solid var(--line);
+border-radius: 8px;
+padding: 1rem 1.2rem;
+overflow-x: auto;
+font-size: 14px;
+line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: 13.5px; }
+
+.table-wrap, table { margin: 1.2rem 0; }
+table {
+border-collapse: collapse;
+width: 100%;
+font-size: 14.5px;
+display: block;
+overflow-x: auto;
+}
+th, td {
+border: 1px solid var(--line);
+padding: .5rem .7rem;
+text-align: left;
+vertical-align: top;
+}
+th { background: var(--accent-soft); font-weight: 700; color: #24304a; }
+tr:nth-child(even) td { background: #fbfcfe; }
+
+blockquote {
+margin: 1.2rem 0;
+padding: .6rem 1.1rem;
+border-left: 3px solid var(--accent);
+background: var(--accent-soft);
+color: #2b3550;
+border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .3rem 0; }
+
+@media (max-width: 1080px) {
+body { padding: 2rem 1.4rem 4rem; max-width: 100%; }
+#TOC {
+position: static; width: auto; height: auto;
+border-right: 0; border-bottom: 1px solid var(--line);
+margin-bottom: 2rem; border-radius: 10px;
+}
+}
+</style>
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#domain-specialized-ai-agents-for-insurance-on-an-open-source-stack" id="toc-domain-specialized-ai-agents-for-insurance-on-an-open-source-stack">Domain-Specialized
+AI Agents for Insurance on an Open-Source Stack</a>
+<ul>
+<li><a href="#a-technical-study-on-model-ops-and-cost-ops-algorithms-systems-and-economics" id="toc-a-technical-study-on-model-ops-and-cost-ops-algorithms-systems-and-economics">A
+Technical Study on Model Ops and Cost Ops — Algorithms, Systems, and
+Economics</a></li>
+<li><a href="#abstract" id="toc-abstract">Abstract</a></li>
+<li><a href="#chapter-1-problem-framing" id="toc-chapter-1-problem-framing">Chapter 1 — Problem Framing</a></li>
+<li><a href="#chapter-2-market-survey-20252026" id="toc-chapter-2-market-survey-20252026">Chapter 2 — Market Survey
+(2025–2026)</a>
+<ul>
+<li><a href="#commercial-vendors" id="toc-commercial-vendors">2.1
+Commercial vendors</a></li>
+<li><a href="#the-oss-gap-the-opportunity" id="toc-the-oss-gap-the-opportunity">2.2 The OSS gap = the
+opportunity</a></li>
+</ul></li>
+<li><a href="#chapter-3-oss-reference-architecture" id="toc-chapter-3-oss-reference-architecture">Chapter 3 — OSS Reference
+Architecture</a></li>
+<li><a href="#chapter-4-model-ops-training-domain-llmsslms-technical" id="toc-chapter-4-model-ops-training-domain-llmsslms-technical">Chapter
+4 — Model Ops: Training Domain LLMs/SLMs (Technical)</a>
+<ul>
+<li><a href="#adaptation-decision-framework" id="toc-adaptation-decision-framework">4.1 Adaptation decision
+framework</a></li>
+<li><a href="#peft-the-math" id="toc-peft-the-math">4.2 PEFT — the
+math</a></li>
+<li><a href="#preference-optimization-the-objectives" id="toc-preference-optimization-the-objectives">4.3 Preference
+optimization — the objectives</a></li>
+<li><a href="#distillation-teacher-student" id="toc-distillation-teacher-student">4.4 Distillation — teacher →
+student</a></li>
+<li><a href="#continued-pretraining-forgetting" id="toc-continued-pretraining-forgetting">4.5 Continued pretraining
+&amp; forgetting</a></li>
+<li><a href="#vram-compute-anchors" id="toc-vram-compute-anchors">4.6
+VRAM / compute anchors</a></li>
+<li><a href="#data-evaluation" id="toc-data-evaluation">4.7 Data &amp;
+evaluation</a></li>
+</ul></li>
+<li><a href="#chapter-4b-serving-internals-technical" id="toc-chapter-4b-serving-internals-technical">Chapter 4B — Serving
+Internals (Technical)</a>
+<ul>
+<li><a href="#b.1-pagedattention-vllm-arxiv2309.06180-sosp-2023" id="toc-b.1-pagedattention-vllm-arxiv2309.06180-sosp-2023">4B.1
+PagedAttention / vLLM (arXiv:2309.06180, SOSP 2023)</a></li>
+<li><a href="#b.2-multi-lora-serving-the-multi-domain-enabler" id="toc-b.2-multi-lora-serving-the-multi-domain-enabler">4B.2 Multi-LoRA
+serving — the multi-domain enabler</a></li>
+<li><a href="#b.3-quantization" id="toc-b.3-quantization">4B.3
+Quantization</a></li>
+<li><a href="#b.4-speculative-decoding-latency" id="toc-b.4-speculative-decoding-latency">4B.4 Speculative decoding
+(latency)</a></li>
+<li><a href="#b.5-structuredguided-decoding-for-extraction-schemas" id="toc-b.5-structuredguided-decoding-for-extraction-schemas">4B.5
+Structured/guided decoding (for extraction schemas)</a></li>
+<li><a href="#b.6-orchestration" id="toc-b.6-orchestration">4B.6
+Orchestration</a></li>
+<li><a href="#b.7-serving-efficiency-the-latencyrate-lr-frontier" id="toc-b.7-serving-efficiency-the-latencyrate-lr-frontier">4B.7 Serving
+efficiency: the latency–rate (L/R) frontier</a></li>
+</ul></li>
+<li><a href="#chapter-5-cost-ops-routing-context-optimization-technical" id="toc-chapter-5-cost-ops-routing-context-optimization-technical">Chapter
+5 — Cost Ops: Routing &amp; Context Optimization (Technical)</a>
+<ul>
+<li><a href="#model-routing-algorithms-benchmarks" id="toc-model-routing-algorithms-benchmarks">5.1 Model routing —
+algorithms &amp; benchmarks</a></li>
+<li><a href="#the-light-to-remote-lr-ratio-the-operational-efficiency-gauge" id="toc-the-light-to-remote-lr-ratio-the-operational-efficiency-gauge">5.1.1
+The light-to-remote (L/R) ratio — the operational efficiency
+gauge</a></li>
+<li><a href="#context-optimization-algorithms-numbers" id="toc-context-optimization-algorithms-numbers">5.2 Context
+optimization — algorithms &amp; numbers</a></li>
+</ul></li>
+<li><a href="#chapter-5b-cost-measurement-with-model-ops-in-place" id="toc-chapter-5b-cost-measurement-with-model-ops-in-place">Chapter 5B
+— Cost Measurement With Model Ops In Place</a></li>
+<li><a href="#chapter-6-the-joint-optimization" id="toc-chapter-6-the-joint-optimization">Chapter 6 — The Joint
+Optimization</a></li>
+<li><a href="#chapter-7-insurance-domain-technical-layer" id="toc-chapter-7-insurance-domain-technical-layer">Chapter 7 —
+Insurance-Domain Technical Layer</a>
+<ul>
+<li><a href="#intelligent-document-processing-the-foundational-capability" id="toc-intelligent-document-processing-the-foundational-capability">7.1
+Intelligent Document Processing (the foundational capability)</a></li>
+<li><a href="#domain-llms-datasets" id="toc-domain-llms-datasets">7.2
+Domain LLMs &amp; datasets</a></li>
+<li><a href="#claimsunderwriting-ml" id="toc-claimsunderwriting-ml">7.3
+Claims/underwriting ML</a></li>
+<li><a href="#reliability-hallucination-compliance" id="toc-reliability-hallucination-compliance">7.4 Reliability,
+hallucination, compliance</a></li>
+</ul></li>
+<li><a href="#chapter-8-multi-domain-design-onboarding-lines-of-business" id="toc-chapter-8-multi-domain-design-onboarding-lines-of-business">Chapter
+8 — Multi-Domain Design (Onboarding Lines of Business)</a></li>
+<li><a href="#chapter-9-reference-blueprint-open-questions" id="toc-chapter-9-reference-blueprint-open-questions">Chapter 9 —
+Reference Blueprint &amp; Open Questions</a>
+<ul>
+<li><a href="#end-to-end-oss-claims-triage" id="toc-end-to-end-oss-claims-triage">9.1 End-to-end (OSS, claims
+triage)</a></li>
+<li><a href="#build-vs-buy" id="toc-build-vs-buy">9.2 Build vs
+buy</a></li>
+<li><a href="#open-research-questions" id="toc-open-research-questions">9.3 Open research questions</a></li>
+</ul></li>
+<li><a href="#appendix-a-insurance-domain-primer-shared-foundation" id="toc-appendix-a-insurance-domain-primer-shared-foundation">Appendix A
+— Insurance Domain Primer (shared foundation)</a></li>
+<li><a href="#appendix-b-citations-arxiv-ids" id="toc-appendix-b-citations-arxiv-ids">Appendix B — Citations (arXiv
+IDs)</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="domain-specialized-ai-agents-for-insurance-on-an-open-source-stack">Domain-Specialized
+AI Agents for Insurance on an Open-Source Stack</h1>
+<h3 id="a-technical-study-on-model-ops-and-cost-ops-algorithms-systems-and-economics">A
+Technical Study on Model Ops and Cost Ops — Algorithms, Systems, and
+Economics</h3>
+<p><strong>Prepared for:</strong> N. Mandipati · <strong>Date:</strong>
+2026-09-18 <strong>Method:</strong> Synthesis of a market survey and
+five deep technical literature reviews (routing, context/KV
+optimization, PEFT/preference/distillation, serving internals,
+insurance-domain NLP/IDP). Papers are cited by arXiv ID; benchmark
+numbers are as reported by the source papers and should be read as
+author-reported unless independently reproduced.</p>
+<hr />
+<h2 id="abstract">Abstract</h2>
+<p>Insurance is the strongest commercial proving ground for agentic AI:
+document-dense, rule-bound, high-volume, with a heavy routine/complex
+split and dollar-denominated KPIs (loss ratio, combined ratio, cycle
+time, straight-through-processing rate). This study first surveys the
+2025–2026 market of insurance AI agents, then designs a fully
+open-source stack to reproduce their capabilities, and finally treats
+the two disciplines the sponsor cares about — <strong>Model Ops</strong>
+(training/deploying domain LLMs and SLMs) and <strong>Cost Ops</strong>
+(routing, context optimization, cost measurement) — at the level of
+algorithms, equations, systems internals, and unit economics.</p>
+<p><strong>Central thesis.</strong> The economically optimal insurance
+architecture is not a single frontier model but a <strong>distilled-SLM
++ router</strong> system. Model Ops produces cheap domain specialists
+(PEFT + distillation); Cost Ops decides when they are safe to use
+(predictive/cascade routing) and compresses what they read (prompt/KV
+optimization). The two couple through one identity — the
+escalation-penalized <em>cost per resolved task</em> — so they must be
+optimized jointly. We formalize this coupling (Ch. 8), give a
+self-host-vs-API break-even and a distill-then-route cost model, and
+ground every component in the primary literature.</p>
+<hr />
+<h2 id="chapter-1-problem-framing">Chapter 1 — Problem Framing</h2>
+<p>Four structural properties of insurance workflows drive the whole
+design:</p>
+<ol type="1">
+<li><strong>Document density</strong> — every workflow starts with
+unstructured intake (ACORD forms, loss runs, SOVs, medical bills, police
+reports, dec pages). This makes Intelligent Document Processing (Ch. 7)
+the foundational capability.</li>
+<li><strong>Rule-boundedness</strong> — underwriting guidelines, policy
+wording, and regulation are explicit rules, ideal for RAG grounding and,
+crucially, for the <em>citable explainability</em> regulators
+require.</li>
+<li><strong>Volume with a long tail</strong> — ~80–90% of
+claims/submissions are near-identical routine; 10–20% are genuinely
+complex. This distribution is the structural justification for routing
+(Ch. 5).</li>
+<li><strong>Dollar-denominated outcomes</strong> — every task has a KPI,
+so the correct optimization target is <strong>cost per <em>resolved</em>
+task</strong>, not cost per token (Ch. 6).</li>
+</ol>
+<p>The consequence, developed throughout: route the routine majority to
+a cheap distilled specialist, escalate the hard minority to a frontier
+model, and measure the whole thing in resolved-task economics.</p>
+<hr />
+<h2 id="chapter-2-market-survey-20252026">Chapter 2 — Market Survey
+(2025–2026)</h2>
+<h3 id="commercial-vendors">2.1 Commercial vendors</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Vendor</th>
+<th>Primary workflows</th>
+<th>Paid/Free</th>
+<th>Notable (vendor-reported)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shift Technology</strong></td>
+<td>Claims, fraud, subrogation</td>
+<td>Paid</td>
+<td>All top-5 U.S. P&amp;C insurers; 4B+ policies; cross-carrier
+Insurance Data Network</td>
+</tr>
+<tr>
+<td><strong>Bevaya</strong> (fka Roots Automation)</td>
+<td>Underwriting intake, FNOL/FROI, medical-bill indexing</td>
+<td>Paid</td>
+<td>InsurGPT™ on 300M+ docs; 98%+ extraction; 120+ deployments</td>
+</tr>
+<tr>
+<td><strong>Indico Data</strong></td>
+<td>Submission processing, claims, reconciliation</td>
+<td>Paid</td>
+<td>SOV/loss-run &lt;30s; 85% submission-time cut</td>
+</tr>
+<tr>
+<td><strong>Cytora</strong></td>
+<td>Risk digitization, intake, renewals, FNOL</td>
+<td>Paid</td>
+<td>140+ languages; Zurich 80% manual-time cut</td>
+</tr>
+<tr>
+<td><strong>EvolutionIQ</strong> (CCC)</td>
+<td>Claims triage, disability, workers’ comp</td>
+<td>Paid</td>
+<td>5–10pt combined-ratio reduction</td>
+</tr>
+<tr>
+<td><strong>Sprout.ai</strong></td>
+<td>Claims automation, fraud, triage</td>
+<td>Paid</td>
+<td>Real-time STP; ISO 27001; Guidewire integration</td>
+</tr>
+<tr>
+<td><strong>Akur8</strong></td>
+<td>Pricing/ratemaking, reserving</td>
+<td>Paid</td>
+<td>350+ insurers; transparent GLM/GAM</td>
+</tr>
+<tr>
+<td><strong>Tractable</strong></td>
+<td>Auto damage assessment, appraisal</td>
+<td>Paid</td>
+<td>Pixel-level image analysis; thousands claims/day</td>
+</tr>
+<tr>
+<td><strong>Sensible</strong></td>
+<td>Document extraction (loss runs, COIs, dec pages)</td>
+<td>Paid, API + free tier</td>
+<td>150+ prebuilt configs; SOC 2 + HIPAA</td>
+</tr>
+<tr>
+<td><strong>Salesforce Agentforce</strong></td>
+<td>Configurable service/sales agents</td>
+<td>Paid</td>
+<td>Atlas Reasoning Engine; low-code; not insurance-native</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Workflows ranked by value:</strong> (1) claims/FNOL, (2)
+underwriting submission intake, (3) fraud detection, (4) document
+extraction/indexing, (5) risk/pricing, (6) policy servicing/renewals,
+(7) subrogation.</p>
+<h3 id="the-oss-gap-the-opportunity">2.2 The OSS gap = the
+opportunity</h3>
+<p>Vendors’ moat is <em>proprietary insurance data</em> (Bevaya’s 300M
+docs, Cytora’s pretrained LLMs, Shift’s cross-carrier network) plus
+explainability/audit machinery — not model architecture. Off-the-shelf
+OSS orchestration and IDP provide the scaffolding but not the domain
+knowledge. <strong>The reproducible OSS strategy</strong> for a carrier
+that owns its claims/policy corpus: assemble the OSS scaffolding (Ch.
+3), specialize via distillation/PEFT on that corpus (Ch. 4), run it
+economically (Ch. 5–6), and internalize the data moat. All vendor ROI
+figures above are vendor-reported and directional only.</p>
+<p>Note: two names sometimes cited in this space — “Sixfold” (pivoted to
+logistics) and “Gradient AI” (ambiguous redirect) — were excluded as
+unverifiable in current form.</p>
+<hr />
+<h2 id="chapter-3-oss-reference-architecture">Chapter 3 — OSS Reference
+Architecture</h2>
+<p><strong>Orchestration</strong> (choose by workflow shape):
+<strong>LangGraph</strong> (stateful graphs + checkpoints for long doc
+pipelines); <strong>CrewAI</strong> (role-based multi-agent for claims
+triage); <strong>Pydantic AI</strong> (typed, durable execution via
+Temporal/Prefect/DBOS, OpenTelemetry-native — best for long
+human-in-the-loop approval). Also Haystack (integrations), LlamaIndex
+(document-centric).</p>
+<p><strong>Serving:</strong> <strong>vLLM</strong> is the leader
+(PagedAttention, continuous batching, chunked prefill, prefix caching,
+multi-LoRA/S-LoRA — see Ch. 4B). TGI is now maintenance-mode; SGLang is
+a strong alternative (RadixAttention). Ollama/llama.cpp for on-prem
+private inference.</p>
+<p><strong>Models:</strong> reasoning-heavy adjudication → Llama 3.x 70B
+/ Qwen 2.5-14B; multilingual claims → Qwen 2.5 (+ Qwen3Guard);
+OCR/extraction → Mistral-OCR / Donut / LayoutLMv3; triage/routing SLMs
+(1–8B) → Phi, Gemma 2/3, Qwen 1.5–7B.</p>
+<p><strong>RAG:</strong> parsing → <strong>Docling</strong> / LlamaParse
+/ Unstructured; embeddings → <strong>BGE</strong> (MIT, MTEB leader) +
+<strong>bge-reranker</strong>; vector DB → <strong>Qdrant</strong>
+(Rust, quantization, hybrid) or Weaviate (multi-tenant, RBAC), pgvector
+if on Postgres.</p>
+<p><strong>Guardrails/observability:</strong> <strong>Guardrails
+AI</strong> + <strong>NeMo Guardrails</strong> + Qwen3Guard;
+<strong>Langfuse</strong> (traces + cost, ClickHouse),
+<strong>Phoenix/Arize</strong> (dev), <strong>Ragas/DeepEval</strong>
+(RAG eval), <strong>OpenLLMetry / OpenTelemetry GenAI</strong>
+semconv.</p>
+<pre><code>Orchestration:  CrewAI / Pydantic AI / LangGraph    (state, HITL, durability)
+      ↓
+Serving:        vLLM  (multi-LoRA base, INT4/FP8, spec-decoding, guided output)
+                 ├─ Qwen2.5-14B (reasoning) ├─ Donut/LayoutLMv3 (extraction) └─ Phi/Gemma (routing)
+      ↓
+RAG:            Docling/LlamaParse → BGE → Qdrant (hybrid) → bge-reranker
+      ↓
+Guardrails/Obs: Qwen3Guard + Guardrails AI + Presidio | Langfuse (cost) + Phoenix (eval)</code></pre>
+<hr />
+<h2 id="chapter-4-model-ops-training-domain-llmsslms-technical">Chapter
+4 — Model Ops: Training Domain LLMs/SLMs (Technical)</h2>
+<h3 id="adaptation-decision-framework">4.1 Adaptation decision
+framework</h3>
+<pre><code>Need new FACTS?              → RAG (citable, auditable, no retraining)
+Need STYLE/FORMAT/behavior?  → Fine-tune
+  ├─ &lt;1K examples            → prompt + few-shot + RAG
+  ├─ 1K–10K, single task     → SFT with LoRA/QLoRA
+  ├─ 10K+, preference        → SFT + DPO/ORPO/KTO/SimPO
+  └─ domain corpus (M tokens)→ continued pretraining (DAPT) → SFT
+Low budget / on-prem?        → QLoRA (4-bit) or distill to an SLM
+Production?                  → quantize (GPTQ/AWQ/FP8) + multi-LoRA serving</code></pre>
+<h3 id="peft-the-math">4.2 PEFT — the math</h3>
+<p><strong>LoRA</strong> (arXiv:2106.09685). Freeze <code>W₀</code>,
+learn a low-rank update:</p>
+<pre><code>h = W₀x + (α/r)·BAx,   B∈ℝ^{d×r}, A∈ℝ^{r×k}, r≪min(d,k)</code></pre>
+<p><code>B</code> zero-init and <code>A</code> Kaiming-uniform →
+identity at start. Scaling <code>α/r</code> (α typ. 16–32). Target
+modules: attention <code>q,k,v,o</code> and MLP
+<code>gate,up,down</code>. Trainable params ≈ <code>2·d·r</code> per
+layer. On GPT-3 175B: <strong>10,000× fewer trainable params, 3× less
+GPU memory</strong>, on-par quality, <strong>zero added latency</strong>
+when merged.</p>
+<p><strong>QLoRA</strong> (arXiv:2305.14314): backprop through a frozen
+4-bit base into LoRA adapters via (1) <strong>NF4</strong>
+(information-theoretically optimal for normal weights), (2)
+<strong>double quantization</strong> (quantize the quant constants, ~0.4
+bit/param saved), (3) <strong>paged optimizers</strong>. Result:
+<strong>fine-tune 65B on one 48GB GPU</strong> (vs ~1,200GB fp16),
+matching 16-bit quality on Vicuna/MMLU with ~95% less VRAM.</p>
+<p><strong>Variants:</strong> <strong>DoRA</strong> (2402.09353)
+decomposes weight into magnitude+direction, LoRA on direction only —
+consistently &gt; LoRA, no inference overhead. <strong>rsLoRA</strong>
+uses <code>α/√r</code> (stabilizes high rank). <strong>LoRA+</strong>
+uses higher LR on <code>B</code> (~2× faster). <strong>PiSSA</strong>
+initializes adapters from SVD principal components (faster convergence,
+lower quant error). <strong>VeRA</strong> shares random projections
+across layers (lower memory).</p>
+<h3 id="preference-optimization-the-objectives">4.3 Preference
+optimization — the objectives</h3>
+<p><strong>DPO</strong> (arXiv:2305.18290): reparameterize RLHF to a
+closed-form classification loss, no reward model or PPO:</p>
+<pre><code>ℒ_DPO = −E_{(x,y⁺,y⁻)} log σ( β[ log(π_θ(y⁺|x)/π_ref(y⁺|x)) − log(π_θ(y⁻|x)/π_ref(y⁻|x)) ] )</code></pre>
+<p>implicit reward <code>r(x,y)=β·log(π_θ/π_ref)</code>; β∈0.1–0.5.
+<strong>ORPO</strong> (2403.07691): reference-free, folds preference
+into SFT via an odds-ratio penalty — no separate ref model or alignment
+phase; models 125M–7B on UltraFeedback beat some &gt;13B (AlpacaEval2 up
+to 12.20, MT-Bench 7.32). <strong>KTO</strong> (2402.01306):
+prospect-theory “human-aware loss,” needs only binary good/bad labels
+(not pairs). <strong>SimPO</strong> (2405.14734): reference-free,
+average-log-prob reward + target margin — beats DPO by up to +6.4
+AlpacaEval2 / +7.5 Arena-Hard. <strong>GRPO</strong> (DeepSeekMath
+2402.03300): critic-free PPO variant, group-relative advantage
+<code>A_i=(r_i−mean(r_G))/std(r_G)</code> — ~2.7× less memory than PPO;
+DeepSeekMath-7B hit 51.7% MATH.</p>
+<table>
+<thead>
+<tr>
+<th>Choose</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DPO</td>
+<td>paired preferences, want simplicity/stability</td>
+</tr>
+<tr>
+<td>ORPO</td>
+<td>want single-stage SFT+align, no ref model</td>
+</tr>
+<tr>
+<td>KTO</td>
+<td>only have binary good/bad labels</td>
+</tr>
+<tr>
+<td>SimPO</td>
+<td>want reference-free + length-controlled</td>
+</tr>
+<tr>
+<td>GRPO</td>
+<td>verifiable-reward tasks (math/code/rules), no critic</td>
+</tr>
+</tbody>
+</table>
+<h3 id="distillation-teacher-student">4.4 Distillation — teacher →
+student</h3>
+<ul>
+<li><strong>Sequence-level KD</strong> (Kim &amp; Rush): train student
+on teacher-generated text.</li>
+<li><strong>MiniLLM</strong> (2306.08543): <strong>reverse KL</strong>
+<code>KL(π_student‖π_teacher)</code> (avoids the student over-covering
+teacher’s low-prob mass) + on-policy training on student-generated
+sequences. 120M–13B: better calibration, lower exposure bias;
+e.g. 13B→1.5B retains ~85% quality.</li>
+<li><strong>GKD</strong> (2306.13649): on-policy, teacher scores the
+student’s own generations — fixes train/inference mismatch; integrates
+with RLHF.</li>
+<li><strong>DistiLLM</strong> (2402.03898): skew-KL loss + adaptive
+off-policy — <strong>4.3× faster</strong> than prior KD at competitive
+quality.</li>
+<li><strong>Synthetic data:</strong> <strong>Evol-Instruct /
+WizardLM</strong> (2304.12244) iteratively evolves instructions to
+higher complexity; reached &gt;90% of ChatGPT on 17/29 skills.</li>
+</ul>
+<p><em>Insurance instantiation:</em> teacher (frontier or Llama-70B)
+labels/geneates claims-decision + extraction data → distill to a 3–7B
+student via MiniLLM/GKD → align with KTO on adjuster accept/reject
+labels → quantize 4-bit → serve on vLLM multi-LoRA with per-carrier
+adapters. This reproduces the vendor “insurance-trained model” using
+your own corpus.</p>
+<h3 id="continued-pretraining-forgetting">4.5 Continued pretraining
+&amp; forgetting</h3>
+<p><strong>DAPT</strong> (arXiv:2004.10964): a second LM-objective
+pretraining phase on in-domain text before task FT; gains in high- and
+low-resource settings; <strong>task-adaptive pretraining</strong> helps
+further. Mitigate catastrophic forgetting with <strong>replay</strong>
+(mix general data), <strong>LoRA-based CPT</strong> (freeze base, adapt
+in adapters), or <strong>EWC</strong>.</p>
+<h3 id="vram-compute-anchors">4.6 VRAM / compute anchors</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>7B train VRAM</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full FT (fp16)</td>
+<td>~80GB</td>
+<td>baseline</td>
+</tr>
+<tr>
+<td>LoRA r=16</td>
+<td>~26GB</td>
+<td>3× memory cut</td>
+</tr>
+<tr>
+<td>QLoRA 4-bit</td>
+<td>~6GB</td>
+<td>fits one RTX 4090</td>
+</tr>
+<tr>
+<td>QLoRA 13B</td>
+<td>~9GB</td>
+<td>+grad-checkpoint for long ctx</td>
+</tr>
+<tr>
+<td>QLoRA 65B</td>
+<td>~48GB</td>
+<td>single A100-80GB</td>
+</tr>
+<tr>
+<td>GRPO vs PPO 7B</td>
+<td>~15GB vs ~40GB</td>
+<td>no critic</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data-evaluation">4.7 Data &amp; evaluation</h3>
+<p>Curation: exact + fuzzy dedup (MinHash-LSH), perplexity/classifier
+quality filters, <strong>decontamination</strong> (13-gram overlap
+removal). Eval: <strong>lm-evaluation-harness</strong> (EleutherAI; 60+
+benchmarks, supports vLLM/HF/APIs). LLM-as-judge correlates only
+~0.4–0.6 with humans and carries position/length bias → debias and keep
+domain-specific human eval. Compliance: on-prem/VPC for PII/PHI, version
+every checkpoint/adapter/dataset, log all inferences, prefer RAG
+citability, <strong>Model Cards</strong> (arXiv:1810.03993) for
+audit.</p>
+<hr />
+<h2 id="chapter-4b-serving-internals-technical">Chapter 4B — Serving
+Internals (Technical)</h2>
+<h3 id="b.1-pagedattention-vllm-arxiv2309.06180-sosp-2023">4B.1
+PagedAttention / vLLM (arXiv:2309.06180, SOSP 2023)</h3>
+<p>OS-style paging of the KV cache into fixed-size blocks →
+fragmentation waste from <strong>60–80% down to &lt;4%</strong>,
+flexible prefix sharing, continuous batching. <strong>14–24× throughput
+vs HF Transformers, 2.2–3.5× vs TGI</strong>; LMSYS production: 5×
+traffic on 50% fewer GPUs.</p>
+<h3 id="b.2-multi-lora-serving-the-multi-domain-enabler">4B.2 Multi-LoRA
+serving — the multi-domain enabler</h3>
+<ul>
+<li><strong>S-LoRA</strong> (arXiv:2311.03285): unified paging of
+adapter weights + KV, heterogeneous-rank batching via custom CUDA
+(MBGMM/MBGMV), adapters in host memory loaded on demand → <strong>serve
+thousands of adapters, ~4× throughput</strong> vs HF PEFT / naive
+vLLM-LoRA.</li>
+<li><strong>Punica</strong> (arXiv:2310.18547): <strong>SGMV</strong>
+kernel batches different adapters against one shared base copy →
+<strong>12× throughput vs SOTA, +2ms/token</strong>.</li>
+</ul>
+<p>This is the systems basis for Ch. 9’s per-domain adapters: adding a
+domain adds an adapter, not a GPU.</p>
+<h3 id="b.3-quantization">4B.3 Quantization</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Method</th>
+<th>Mechanism</th>
+<th>Reported</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GPTQ</strong> (2210.17323)</td>
+<td>layer-wise Hessian/OBQ, 3–4 bit</td>
+<td>3.25× (A100)/4.5× (A6000) speedup; 175B in ~4 GPU-hr</td>
+</tr>
+<tr>
+<td><strong>AWQ</strong> (2306.00978)</td>
+<td>activation-aware per-channel scaling, protect ~1% salient</td>
+<td>3×+ vs FP16; 70B on mobile GPU at 4-bit</td>
+</tr>
+<tr>
+<td><strong>SmoothQuant</strong> (2211.10438)</td>
+<td>migrate activation outliers to weights, W8A8</td>
+<td>1.56× speed, 2× memory; 530B on one node</td>
+</tr>
+<tr>
+<td><strong>SqueezeLLM</strong> (2306.07629)</td>
+<td>sensitivity non-uniform + dense-and-sparse</td>
+<td>2.3× (A6000); 3-bit perplexity gap ↓2.1×</td>
+</tr>
+<tr>
+<td><strong>FP8 / GGUF k-quants</strong></td>
+<td>HW FP8 (H100) / mixed-bit CPU</td>
+<td>H100 accel / Apple-Silicon portable</td>
+</tr>
+</tbody>
+</table>
+<h3 id="b.4-speculative-decoding-latency">4B.4 Speculative decoding
+(latency)</h3>
+<p>Draft-verify (<strong>Leviathan</strong> 2211.17192, 2–3×);
+<strong>Medusa</strong> (2401.10774) extra heads + tree attention
+(2.2–3.6×); <strong>EAGLE/2/3</strong> (2401.15077) feature-level
+autoregression (<strong>up to 5.6×</strong> on 13B).
+Distribution-preserving — no quality loss.</p>
+<h3 id="b.5-structuredguided-decoding-for-extraction-schemas">4B.5
+Structured/guided decoding (for extraction schemas)</h3>
+<p><strong>Outlines</strong> (FSM), <strong>xgrammar</strong>
+(2411.15100 — context-independent/dependent token split, <strong>up to
+100×</strong> faster constrained gen, near-zero overhead),
+<strong>lm-format-enforcer</strong>. Essential for reliable ACORD/FNOL
+JSON extraction.</p>
+<h3 id="b.6-orchestration">4B.6 Orchestration</h3>
+<p><strong>SGLang</strong> RadixAttention (up to 6.4× vs
+vLLM/Guidance/LMQL on shared-prefix workloads), <strong>KServe</strong>
+(InferenceService, ModelMesh), <strong>Ray Serve</strong> (fractional
+GPU, composition), <strong>BentoML</strong> (packaging/BYOC), emerging
+<strong>llm-d</strong> / NVIDIA Dynamo (disaggregated
+prefill/decode).</p>
+<h3 id="b.7-serving-efficiency-the-latencyrate-lr-frontier">4B.7 Serving
+efficiency: the latency–rate (L/R) frontier</h3>
+<p>The router L/R of §5.1.1 governs <em>which</em> model runs; the
+<strong>serving L/R</strong> governs how efficiently a given model runs
+on the GPU. Per-request latency splits into two regimes:</p>
+<pre><code>Latency = TTFT (prefill, compute-bound) + N_out · TPOT (decode, memory-bandwidth-bound)</code></pre>
+<p>The serving-efficiency curve is <strong>latency L as a function of
+request rate R</strong> (QPS or concurrency). As R rises, continuous
+batching raises throughput and utilization <code>U</code>, but
+per-request L rises too — the two trade off along a frontier with a
+<strong>knee</strong>: efficient serving means operating near that knee
+(high <code>U</code>, L still under SLO), and the right KPI is
+<strong>goodput</strong> = requests/sec <em>that meet the SLO</em>, not
+raw throughput.</p>
+<p><strong>Why the curve bends — the roofline ratio.</strong> Decode has
+low arithmetic intensity <code>I = FLOPs / bytes_moved</code>; loading
+weights + KV per token dominates, so a single stream is
+memory-bandwidth-bound and wastes compute. Batching amortizes the weight
+load across requests, raising effective <code>I</code> and
+<code>U</code> — until KV-cache bandwidth/capacity (or, eventually,
+compute) becomes the bound. This is the systems reason PagedAttention +
+continuous batching (4B.1), GQA/MQA and KV quantization (5.2) matter,
+and it closes the loop with §5.1.1: <strong>routing concentrates traffic
+onto the SLM → larger batches → higher <code>I</code> and <code>U</code>
+→ the router L/R and the serving L/R improve the same cost line
+together.</strong> Chunked prefill (vLLM) tunes the split directly,
+trading TTFT against TPOT.</p>
+<p><strong>Two insurance SLA classes</strong> the router must
+distinguish: <em>interactive</em> (agent turn, chatbot, real-time FNOL
+triage — TTFT + TPOT bound, keep R below the knee) vs <em>batch</em>
+(overnight document indexing, bulk loss-run extraction — pure
+throughput, push R past the knee to maximize <code>U</code>). Serve them
+on separate queues/replicas or with priority scheduling; report L-vs-R
+and goodput per class in Langfuse/DCGM.</p>
+<hr />
+<h2 id="chapter-5-cost-ops-routing-context-optimization-technical">Chapter 5
+— Cost Ops: Routing &amp; Context Optimization (Technical)</h2>
+<h3 id="model-routing-algorithms-benchmarks">5.1 Model routing —
+algorithms &amp; benchmarks</h3>
+<p><strong>RouteLLM</strong> (arXiv:2406.18665) learns a binary router
+<code>R: query→{strong,weak}</code> at threshold α (route strong if
+<code>P(strong wins|q)&gt;α</code>), via four routers: -
+<strong>SW-ranking (Bradley-Terry):</strong> non-parametric,
+cosine-similarity-weighted (γ=10) over Arena battles;
+<code>P(strong wins)=σ(ξ_s−ξ_w)</code>; no gradient training; adds ≤0.4%
+cost. - <strong>Matrix factorization:</strong> bilinear win-probability
+on model/query embeddings (recommender-style). - <strong>BERT
+classifier:</strong> CLS + logistic head, full FT. - <strong>Causal-LLM
+classifier:</strong> Llama-3-8B predicting label token.</p>
+<p>Metrics: <strong>PGR</strong> (performance-gap recovered),
+<strong>APGR</strong> (∫PGR over cost), <strong>CPT(x%)</strong> (min
+strong-calls for target PGR). Results (GPT-4 vs Mixtral-8x7B): MT-Bench
+matrix-factorization <strong>APGR 0.802, up to 3.66× cheaper at ~95%
+GPT-4 quality</strong>; MMLU ~20% fewer GPT-4 calls at 50% PGR. Routers
+<strong>generalize across model pairs</strong> (→ Claude, Llama-3.1)
+without retraining.</p>
+<p><strong>FrugalGPT</strong> (arXiv:2305.05176) — LLM
+<strong>cascade</strong> cheapest→dearest, accept <code>a_i</code> when
+scorer <code>g(q,a_i)≥τ_i</code> (DistilBERT reliability regressor);
+mixed-integer optimization of <code>max E[r] s.t. E[cost]≤b</code>.
+<strong>Up to 98.3% cost reduction (HEADLINES) at +1.5% over
+GPT-4.</strong></p>
+<p><strong>Hybrid LLM</strong> (arXiv:2404.14618) — DeBERTa-v3 router on
+quality gap <code>H(x)=Q_small−Q_large</code>; deterministic /
+probabilistic (soft labels from 10 samples) / transformed (relaxed
+<code>P[H≥−t]</code> for imbalance). ~22% fewer large-model calls at ≤1%
+quality drop; router adds ~0.036s.</p>
+<p><strong>AutoMix</strong> (arXiv:2310.12963) — self-verification
+cascade with a <strong>POMDP meta-router</strong> ⟨S,A,T,R,Ω,O⟩;
+verifier confidence (9 levels), reward <code>P−λC</code>, AdaOps
+particle-filter solver (&lt;1ms lookup). Classifies queries
+easy/complex/<strong>unsolvable</strong> (avoid wasteful escalation);
+&gt;50% cost cut, beats FrugalGPT/HybridLLM; works at 50 training
+examples.</p>
+<p><strong>Benchmarks &amp; meta:</strong> <strong>RouterBench</strong>
+(2403.12031, 405K samples, 11 models/8 datasets) — metric
+<strong>AIQ</strong> (∫ over non-decreasing convex hull); finding: cheap
+models (Mistral-7B, WizardLM-13B) frequently optimal, <strong>GPT-4
+seldom chosen</strong>, 2–5× cost variation at equal quality; cascading
+beats predictive when judge error ≤0.1, degrades &gt;0.2.
+<strong>GraphRouter</strong> (2410.03834) — heterogeneous GNN
+edge-prediction, inductive to new LLMs (+9.52% vs C2MAB-V, 99.45% less
+onboarding time). <strong>RouterDC</strong> (2409.19886) — dual
+contrastive (sample-LLM + sample-sample), mDeBERTa 86M, +3.98%
+in-distribution, ~6× faster than voting. <strong>Aurelio
+semantic-router</strong> (MIT) — embedding cosine-similarity routing,
+~10ms, Qdrant/Pinecone backed.</p>
+<p><strong>Predictive vs cascade tradeoff.</strong> Predictive = single
+forward pass, low latency, but bounded by predictor accuracy and needs
+calibration to the deployment distribution. Cascade = self-correcting
+and can beat any single model, but adds sequential/verification latency
+and <strong>degrades fast when the “larger ≥ smaller quality” assumption
+is violated (~6–13% of queries per FrugalGPT)</strong>. For insurance: a
+<em>predictive domain+difficulty router</em> front-door (low latency for
+real-time FNOL) with a <em>cascade fallback</em> on low confidence.</p>
+<h3 id="the-light-to-remote-lr-ratio-the-operational-efficiency-gauge">5.1.1
+The light-to-remote (L/R) ratio — the operational efficiency gauge</h3>
+<p>The literature standardized on quality-at-cost curves (APGR/CPT/AIQ),
+but the day-to-day operational efficiency gauge of a deployed router is
+the <strong>light-to-remote call ratio</strong>: how many queries the
+cheap/local model absorbs per query that reaches the expensive/remote
+model. Let a router send fraction <code>p</code> of traffic to the light
+SLM (first-pass success <code>s</code>); every attempted-local query
+hits the light model once, and a fraction <code>(1−s)</code> of them
+escalate. Then over N queries:</p>
+<pre><code>light calls   = p·N
+remote calls  = (1−p)·N + p·(1−s)·N = N·(1 − p·s)
+
+L/R = light_calls / remote_calls = p / (1 − p·s)</code></pre>
+<p>Limits make the coupling explicit: as <code>s→1</code> (SLM always
+right) <code>L/R = p/(1−p)</code> — pure routing gain; as
+<code>s→0</code> (SLM useless) <code>L/R → p</code> — you pay the light
+call <em>and</em> still hit remote on everything (the escalation penalty
+of Ch. 6 surfacing as a collapsed ratio). The effective remote-touch
+rate is <code>1 − p·s</code>, and the blended-cost efficiency vs an
+all-remote baseline is:</p>
+<pre><code>C_blended / C_remote = (1 − p·s) + (C_light / C_remote)·p</code></pre>
+<p><strong>Critical caveat — L/R alone is a trap.</strong> A router
+maximizes L/R trivially by sending everything to the light model, which
+is why RouteLLM/RouterBench refused it as a standalone number. L/R is
+only meaningful <em>read jointly with a quality metric</em>: it is the
+operational efficiency KPI (drives cost and GPU utilization U), while
+<strong>APGR/CPT/AIQ are the quality-at-cost gauges that keep it
+honest</strong>. Report the pair. In insurance terms, L/R tells you how
+much of the routine 80–90% the SLM is actually catching; a falling L/R
+at fixed PGR is the earliest signal of SLM drift and the trigger for
+re-distillation (Ch. 6). Note that raising <code>s</code> (Model Ops)
+raises L/R without hurting quality — the two disciplines pull the same
+lever.</p>
+<blockquote>
+<p>The sponsor’s continuation-routing idea (turn-to-turn
+escalate-when-stuck / relax-when-converged) is the multi-turn
+generalization of AutoMix’s meta-router; unpublished at benchmark scale
+— an open contribution (Ch. 9).</p>
+</blockquote>
+<h3 id="context-optimization-algorithms-numbers">5.2 Context
+optimization — algorithms &amp; numbers</h3>
+<p><strong>LLMLingua</strong> (arXiv:2310.05736) — small-LM
+perplexity-based token pruning: <strong>budget controller</strong>
+(instructions τ≈0.85, questions τ≈0.9, demos compressed harder) +
+<strong>iterative token-level compression</strong> (~100-token segments,
+per-segment threshold) + distribution alignment. GSM8K <strong>5×
+compression at 79.08 EM (vs 78.85 full)</strong>, 20× at 77.33; ~1/25
+target-LLM overhead. <strong>LongLLMLingua</strong> (2310.06839) —
+question-aware coarse-to-fine: document ranking <code>r_k</code>,
+<strong>contrastive perplexity</strong>
+<code>s_i=ppl(x_i|x_&lt;i)−ppl(x_i|x_que,x_&lt;i)</code> (≈ conditional
+PMI), document reordering (fights “lost in the middle”), subsequence
+recovery. <strong>+21.4% at ~4× on NaturalQuestions; 94% cost reduction
+on LooGLE.</strong> <strong>LLMLingua-2</strong> (2403.12968) —
+token-classification (XLM-RoBERTa) via GPT-4 data distillation; 3–6×
+faster than v1.</p>
+<p><strong>Prefix/KV caching.</strong> vLLM APC (hash-based block
+reuse). <strong>SGLang RadixAttention</strong> (2312.07104) — radix tree
+of KV pages, LRU eviction, longest-shared-prefix-first scheduling (Thm:
+optimal hit rate when cache≥max req length); <strong>up to 6.4×
+throughput, 3.7× lower latency</strong>, production hit rates 50–99%.
+For insurance, prefix-cache the stable policy/guideline block once,
+reuse across every claim.</p>
+<p><strong>KV compression.</strong> <strong>H2O</strong> (2306.14048)
+heavy-hitter eviction (submodular) — 20% cache → up to 29× throughput.
+<strong>StreamingLLM</strong> (2309.17453) attention sinks (4 initial
+tokens) + rolling window — 5158→5.40 PPL, 22.2× speedup, 4M tokens.
+<strong>SnapKV</strong> (2404.14469) observation-window head-wise
+selection — 3.6× gen speed, 8.2× memory at 16K, ~380K ctx on one A100.
+<strong>PyramidKV</strong> (2406.02069) layer-varying budget
+(“information funneling”) — matches full cache at <strong>12%
+retention</strong>. <strong>Scissorhands</strong> (2305.17118) — 5× (20×
+with 4-bit).</p>
+<p><strong>KV quantization.</strong> <strong>KIVI</strong> (2402.02750)
+2-bit asymmetric (key per-channel, value per-token) — 2.6× less memory,
+2.35–3.47× throughput. <strong>KVQuant</strong> (2401.18079) pre-RoPE
+per-channel + non-uniform + dense-and-sparse — <strong>&lt;0.1 PPL at
+3-bit</strong>, 1M ctx on one A100.</p>
+<p><strong>Attention architecture.</strong> <strong>MQA</strong>
+(1911.02150) / <strong>GQA</strong> (2305.13245) shared KV heads
+(uptrain MHA→GQA at 5% compute; near-MHA quality); sliding-window
+(<strong>Longformer</strong> 2004.05150, <strong>BigBird</strong>
+2007.14062, <strong>Mistral-7B</strong> 2310.06825). <strong>RAG
+compression: RECOMP</strong> (2310.04408) extractive+abstractive
+summarizers with selective augmentation — <strong>6% compression,
+minimal loss</strong>.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Method</th>
+<th>Type</th>
+<th>Compression / gain</th>
+<th>arXiv</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLMLingua</td>
+<td>prompt</td>
+<td>5–20×; 79.08 EM <span class="citation" data-cites="5">@5</span>×</td>
+<td>2310.05736</td>
+</tr>
+<tr>
+<td>LongLLMLingua</td>
+<td>prompt</td>
+<td>2–6×; +21.4% <span class="citation" data-cites="4">@4</span>×</td>
+<td>2310.06839</td>
+</tr>
+<tr>
+<td>RadixAttention</td>
+<td>KV reuse</td>
+<td>50–99% hit; 6.4× tput</td>
+<td>2312.07104</td>
+</tr>
+<tr>
+<td>H2O</td>
+<td>KV evict</td>
+<td>20% cache; 29× tput</td>
+<td>2306.14048</td>
+</tr>
+<tr>
+<td>PyramidKV</td>
+<td>KV evict</td>
+<td>12% cache matches full</td>
+<td>2406.02069</td>
+</tr>
+<tr>
+<td>KIVI / KVQuant</td>
+<td>KV quant</td>
+<td>2-bit / &lt;0.1 PPL <span class="citation" data-cites="3-bit">@3-bit</span></td>
+<td>2402.02750 / 2401.18079</td>
+</tr>
+<tr>
+<td>RECOMP</td>
+<td>RAG</td>
+<td>6% compression</td>
+<td>2310.04408</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="chapter-5b-cost-measurement-with-model-ops-in-place">Chapter 5B
+— Cost Measurement With Model Ops In Place</h2>
+<p>Once you self-host fine-tuned SLMs, API per-token pricing no longer
+describes cost — it becomes utilization + amortization.</p>
+<pre><code>C_request = C_marginal + C_infra_amortized + C_modelops_amortized</code></pre>
+<p><strong>Marginal serving cost:</strong></p>
+<pre><code>C_per_1M_tok = GPU_$per_hr / (T_tok_per_sec × 3600 × U) × 1e6</code></pre>
+<p>Worked (parameterized by Ch. 4B throughput): A100 @ $3/hr, 7B ~2,500
+tok/s (INT4, continuous batching), U=0.7 → <strong>≈ $0.48 / 1M output
+tokens</strong> vs $15–75 frontier → 30–150× cheaper.
+<strong>Utilization U is the dominant lever</strong>, and routing raises
+U (concentrates traffic on the SLM) — so routing saves twice.</p>
+<p><strong>Amortized Model-Ops cost:</strong></p>
+<pre><code>C_modelops_amortized = (C_train + C_teacher_data) / N_life</code></pre>
+<p>High-volume domains amortize a $2K distillation to ~$0.0001/req; thin
+domains don’t (→ use RAG, not a bespoke adapter). Re-distillation
+cadence is a <em>cost</em> knob, not just quality.</p>
+<p><strong>Multi-LoRA allocation</strong> (S-LoRA/Punica): base GPU is
+shared fixed cost allocated by <strong>token share</strong>; per-domain
+marginal ≈ SGMV overhead + tiny amortized training. Adding domain N+1
+adds no GPU.</p>
+<p><strong>Instrumentation:</strong> DCGM-exporter→Prometheus for live U
+and $/hr; register the computed self-hosted <code>$/1M</code> into
+Langfuse/OpenLIT/LiteLLM custom pricing (traces show real cost, not $0);
+amortization ledger in the model registry; tag every trace with
+<code>domain / tier / escalated / cache_hit</code>; emit OTel GenAI
+semconv so API and self-hosted accounting are identical.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Source</th>
+<th>Why (with Model Ops)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>self-hosted $/1M tok</td>
+<td>DCGM U + throughput</td>
+<td>live unit cost, falls as U rises</td>
+</tr>
+<tr>
+<td>GPU utilization U</td>
+<td>DCGM</td>
+<td>dominant lever</td>
+</tr>
+<tr>
+<td><strong>serving L/R</strong>: L vs R + goodput</td>
+<td>DCGM + Langfuse (TTFT/TPOT)</td>
+<td>operate at the knee; per SLA class (interactive vs batch)</td>
+</tr>
+<tr>
+<td>SLM first-pass success s</td>
+<td>eval + escalation logs</td>
+<td>drives escalation penalty; drop = drift</td>
+</tr>
+<tr>
+<td>escalation rate (1−s)/domain</td>
+<td>LiteLLM/Langfuse tags</td>
+<td>rising → trigger re-distillation</td>
+</tr>
+<tr>
+<td><strong>L/R ratio</strong> = p/(1−p·s)</td>
+<td>routing tags</td>
+<td>operational efficiency gauge; read <em>with</em> PGR; falling at
+fixed PGR = drift</td>
+</tr>
+<tr>
+<td>amortized model-ops $/req</td>
+<td>C_train/N_life</td>
+<td>guards over-frequent re-distill</td>
+</tr>
+<tr>
+<td><strong>cost per resolved task</strong></td>
+<td>Ch. 6 formula</td>
+<td>north-star</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="chapter-6-the-joint-optimization">Chapter 6 — The Joint
+Optimization</h2>
+<p><strong>Break-even</strong> (self-host vs API):
+<code>N* = Fixed / (API/req − self/req)</code>. Example: distilled 7B on
+one A100 (~$2,160/mo) vs $0.01 API/req → <strong>~240K req/mo
+crossover</strong>; typical 100K–500K. Insurance routine volume sits
+above it.</p>
+<p><strong>Distill-then-route cost function.</strong> Router sends
+fraction <code>p</code> to self-hosted SLM (first-pass success
+<code>s</code>), <code>1−p</code> to frontier:</p>
+<pre><code>C_task = p·[ C_slm + (1−s)·C_api ] + (1−p)·C_api</code></pre>
+<p>The <code>(1−s)·C_api</code> <strong>escalation penalty</strong> is
+the crux: a cheap SLM with low success is <em>not</em> cheap — every
+failure pays both models. Equivalently, this cost is set by the
+<strong>L/R ratio</strong> <code>p/(1−p·s)</code> (§5.1.1): the
+remote-touch rate <code>(1−p·s)</code> is precisely the coefficient on
+<code>C_api</code>, so maximizing L/R <em>at fixed quality</em> is the
+same optimization as minimizing <code>C_task</code>. With
+<code>p≈0.85</code>, <code>s</code> high, <code>C_slm≈0.1·C_api</code> →
+blended ≈ <code>0.235·C_api</code> (~4×); reported real-world synergy
+<strong>5–10×</strong> at equal task-success. This is exactly why Model
+Ops (raise <code>s</code> via distillation, Ch. 4) and Cost Ops (raise
+<code>p</code>, tune threshold α/τ, Ch. 5) are one problem — and why
+<strong>RouterBench’s finding that “GPT-4 is seldom chosen”</strong> is
+the empirical signature of it.</p>
+<p><strong>The closed loop:</strong> Cost-Ops telemetry (rising
+escalation rate = SLM drift) triggers the next Model-Ops
+re-distillation. Choose re-distillation cadence to minimize
+<code>C_train/N_life + drift-induced escalation cost</code>.</p>
+<hr />
+<h2 id="chapter-7-insurance-domain-technical-layer">Chapter 7 —
+Insurance-Domain Technical Layer</h2>
+<h3 id="intelligent-document-processing-the-foundational-capability">7.1
+Intelligent Document Processing (the foundational capability)</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Model</th>
+<th>Task</th>
+<th>Reported</th>
+<th>arXiv</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LayoutLMv3</strong></td>
+<td>form/receipt/doc understanding</td>
+<td><strong>FUNSD F1 92.08</strong>, CORD 97.46, DocVQA ANLS 83.37
+(LARGE 368M)</td>
+<td>2204.08387</td>
+</tr>
+<tr>
+<td><strong>Donut</strong></td>
+<td>OCR-free VDU</td>
+<td>SOTA speed/accuracy, no OCR error propagation</td>
+<td>2111.15664</td>
+</tr>
+<tr>
+<td><strong>DocLLM</strong></td>
+<td>layout-aware LLM (bbox, no image encoder)</td>
+<td>wins 14/16 datasets</td>
+<td>2401.00908</td>
+</tr>
+<tr>
+<td><strong>Docling</strong> (IBM, MIT)</td>
+<td>PDF→structure (DocLayNet + TableFormer)</td>
+<td>commodity hardware</td>
+<td>2408.09869</td>
+</tr>
+<tr>
+<td><strong>Table Transformer</strong></td>
+<td>table structure (PubTables-1M)</td>
+<td>DETR-based</td>
+<td>2110.00061</td>
+</tr>
+</tbody>
+</table>
+<p>Benchmarks that map to insurance forms: <strong>FUNSD</strong> (199
+forms), <strong>CORD</strong> (1,000 receipts), <strong>DocVQA</strong>
+(50K Q / 12,767 imgs), <strong>SROIE</strong>,
+<strong>DocLayNet</strong> (80,863 pages incl. financial/legal).
+<em>Insurance pipeline:</em> Docling/Donut extract → guided decoding
+(xgrammar, Ch. 4B) forces the ACORD/FNOL JSON schema → validate →
+RAG.</p>
+<h3 id="domain-llms-datasets">7.2 Domain LLMs &amp; datasets</h3>
+<p><strong>InsuranceQA</strong> (arXiv:1905.13538) — first large-scale
+insurance QA (12,889 train Q, 27,413 answers), answer-selection
+benchmark. <strong>FinGPT</strong> (2306.06031) — open, LoRA on
+Llama-2/Falcon/etc., <strong>F1 0.882 FPB / 0.903 TFNS</strong>,
+fine-tune <strong>&lt;$300</strong> (vs BloombergGPT ~$2.67M); provides
+6 curated datasets. <strong>BloombergGPT</strong> (2303.17564) — 50B,
+363B financial tokens, closed. <strong>FinBERT</strong> (1908.10063) —
+domain-pretrained BERT for sentiment; 5.3M+ downloads/mo. HuggingFace
+hosts <strong>466+ insurance-specific models</strong> (QA, NER,
+Donut-insurance, insurance chatbots). <em>Takeaway:</em> FinGPT proves
+the “cheap domain specialization via LoRA on open base” thesis at
+&lt;$300 — the exact Model-Ops path in Ch. 4.</p>
+<h3 id="claimsunderwriting-ml">7.3 Claims/underwriting ML</h3>
+<p><strong>Fraud detection:</strong> graph methods on
+claim–policyholder–broker–garage networks — <strong>BiRank</strong>
+(2009.08313) network features beat claim-only models;
+<strong>AutoFraudNet</strong> (2301.07526) multimodal
+(image+text+metadata) cascaded fusion, +3% PR-AUC;
+graph-gradient-boosting hybrids add SHAP interpretability.
+<strong>Actuarial:</strong> interpretable neural additive models and
+transformer tabular pricing benchmarked against GLM/GBT/CANN — but
+transparent GLM/GAM (cf. Akur8) remain preferred for regulatory
+explainability. <em>(Several 2026-dated agentic-orchestration papers
+surfaced in the scan could not be independently verified and are omitted
+here pending confirmation.)</em></p>
+<h3 id="reliability-hallucination-compliance">7.4 Reliability,
+hallucination, compliance</h3>
+<p>High-stakes domains need calibration + citation grounding: financial
+GraphRAG hallucination benchmarks show hallucinations risk “regulatory
+violations”; <strong>claim-level confidence calibration</strong> enables
+selective human review of low-confidence outputs — which <em>is</em> the
+routing/HITL threshold in Ch. 5. <strong>PII/PHI:</strong>
+<strong>Presidio</strong> (MIT — NER + regex + checksum + DICOM image
+redaction) for de-identification (with the caveat that no detector is
+exhaustive → layer defenses). <strong>Audit:</strong> <strong>Model
+Cards</strong> (1810.03993) per adapter/checkpoint.</p>
+<hr />
+<h2 id="chapter-8-multi-domain-design-onboarding-lines-of-business">Chapter
+8 — Multi-Domain Design (Onboarding Lines of Business)</h2>
+<p>A <strong>domain</strong> (LOB: Auto, Home, Health, Life, Commercial
+P&amp;C, Workers’ Comp, Cyber…) = <strong>{ LoRA adapter } + { RAG
+collection } + { config profile }</strong> under one registry key. All
+three hot-swap on shared infra (S-LoRA base GPU + one Qdrant + one
+graph), so <strong>N domains ≈ the GPUs of one base model.</strong></p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">domains</span><span class="kw">:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">auto</span><span class="kw">:</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/auto-claims-3b-v4</span><span class="co">    # LoRA on shared base</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> auto_policies</span><span class="co">                        # Qdrant collection</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/auto_fnol.json</span><span class="co">                   # guided-decoding target</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> auto_coverage_check</span><span class="kw">]</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.82</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">collision</span><span class="kw">,</span><span class="at"> vehicle</span><span class="kw">,</span><span class="at"> vin</span><span class="kw">,</span><span class="at"> at-fault</span><span class="kw">]</span><span class="co">        # domain classifier</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">workers_comp</span><span class="kw">:</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">adapter</span><span class="kw">:</span><span class="at"> s3://models/adapters/wc-claims-3b-v2</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">rag_collection</span><span class="kw">:</span><span class="at"> wc_regulations</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">doc_schema</span><span class="kw">:</span><span class="at"> schemas/wc_froi.json</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">guardrails</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">pii</span><span class="kw">,</span><span class="at"> phi</span><span class="kw">,</span><span class="at"> jurisdiction_check</span><span class="kw">]</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">router</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">slm_confidence_threshold</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.90</span><span class="kw">,</span><span class="at"> </span><span class="fu">escalation_model</span><span class="kw">:</span><span class="at"> llama-70b </span><span class="kw">}</span><span class="co">  # stricter: medical+legal</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">keywords</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">injury</span><span class="kw">,</span><span class="at"> employer</span><span class="kw">,</span><span class="at"> froi</span><span class="kw">,</span><span class="at"> return-to-work</span><span class="kw">]</span></span></code></pre></div>
+<p><strong>Two orthogonal routers:</strong> a <strong>domain
+classifier</strong> (“which LOB?” — embedding-similarity over
+<code>keywords</code>, or a lookup since the intake channel usually
+knows) picks {adapter, collection, profile}; then the <strong>tier
+router</strong> (Ch. 5) picks SLM-vs-frontier at that domain’s
+threshold.</p>
+<p><strong>Onboarding a new LOB (e.g. Cyber):</strong> curate data →
+distill a LoRA (hours, ~MB) → index a Qdrant collection → author a
+profile → add one registry block → vLLM hot-loads it, no redeploy.</p>
+<p><strong>Per-domain Cost Ops:</strong> each LOB gets its own threshold
+τ and re-distillation cadence — strict τ for high-exposure lines (WC,
+Life: PHI/legal), loose τ for high-volume routine (Auto, Travel, Pet).
+Every trace tagged <code>domain</code> → cost-per-resolved-task,
+escalation rate, and drift reported per LOB; rising escalation in one
+triggers that LOB’s re-distillation independently.</p>
+<p><strong>Two axes:</strong> LOB × workflow
+(underwriting/FNOL/servicing/fraud). Compose via paired keys
+(<code>auto/claims</code>) or <strong>stacked adapters</strong> (base +
+LOB-LoRA + workflow-LoRA on multi-LoRA). Start with the LOB axis; split
+by workflow only when it diverges enough to earn a separate adapter.</p>
+<hr />
+<h2 id="chapter-9-reference-blueprint-open-questions">Chapter 9 —
+Reference Blueprint &amp; Open Questions</h2>
+<h3 id="end-to-end-oss-claims-triage">9.1 End-to-end (OSS, claims
+triage)</h3>
+<ol type="1">
+<li><strong>Ingest</strong> — Docling/Donut/LayoutLMv3 extract fields
+(guided decoding forces schema).</li>
+<li><strong>Ground</strong> — Qdrant hybrid retrieval (BGE +
+bge-reranker); prefix-cache stable guideline context
+(RadixAttention/APC); optionally RECOMP/LongLLMLingua-compress long
+medical/legal docs.</li>
+<li><strong>Route</strong> — domain classifier → per-domain adapter;
+tier router (RouteLLM/cascade) → distilled 3–7B SLM (vLLM multi-LoRA,
+INT4) for routine; escalate low-confidence/complex to Llama-70B or
+frontier.</li>
+<li><strong>Guard</strong> — Presidio + Qwen3Guard + Guardrails AI
+(PII/PHI, jurisdiction, coverage).</li>
+<li><strong>HITL</strong> — Pydantic AI durable pause for adjuster
+sign-off above a value/uncertainty threshold (= calibrated confidence
+gate).</li>
+<li><strong>Observe</strong> — Langfuse traces; report
+cost-per-resolved-claim, escalation rate, SLM success s, cache-hit, U
+(DCGM).</li>
+<li><strong>Close the loop</strong> — adjuster corrections → new
+distillation/SFT data; escalation-rate rise → re-distill.</li>
+</ol>
+<h3 id="build-vs-buy">9.2 Build vs buy</h3>
+<p><strong>Buy</strong> (Shift/Bevaya/Cytora…) for speed-to-value when
+you lack a labeled corpus or ML org — you rent their data moat.
+<strong>Build on OSS</strong> when you own a large claims/policy corpus
+and want the moat internalized, on-prem PII/PHI control, and long-run
+unit economics — FinGPT (&lt;$300 LoRA) shows the specialization cost is
+small; the recurring cost is data curation and serving, both governed by
+Ch. 5B.</p>
+<h3 id="open-research-questions">9.3 Open research questions</h3>
+<ol type="1">
+<li><strong>Continuation routing for multi-turn claims</strong> —
+POMDP-style turn-to-turn escalate/relax; unpublished at benchmark
+scale.</li>
+<li><strong>Routing under distribution shift</strong> — how fast can a
+router detect distilled-SLM staleness on a new claim type and rebalance
+τ (ties GraphRouter inductivity to drift)?</li>
+<li><strong>Auditable rationale across a split decision</strong> — when
+SLM + frontier both contribute, produce one regulator-grade
+explanation.</li>
+<li><strong>Optimal re-distillation cadence</strong> — closed form
+minimizing training + serving + escalation cost under measured
+drift.</li>
+<li><strong>Compression vs. compliance</strong> — bound the risk that
+20× prompt compression (LLMLingua) or aggressive KV eviction drops
+legally material context.</li>
+</ol>
+<hr />
+<h2 id="appendix-a-insurance-domain-primer-shared-foundation">Appendix A
+— Insurance Domain Primer (shared foundation)</h2>
+<p>Universal concepts every LOB inherits — architecturally the
+<strong>shared base/core-adapter layer</strong> (train once via
+DAPT/core-adapter), so per-domain adapters encode only deltas.</p>
+<p><strong>Six principles:</strong> risk transfer &amp; pooling ·
+insurable interest · utmost good faith · indemnity · subrogation ·
+contribution &amp; proximate cause. <strong>Parties:</strong> insured ·
+carrier · producer · underwriter · adjuster · actuary · reinsurer · MGA
+· TPA (agents must model authority). <strong>Two lifecycles (same shape
+across LOBs):</strong> <em>Policy:</em>
+submission→underwriting→quote→bind→issuance(dec
+page)→servicing/endorsements→renewal→cancellation. <em>Claims:</em>
+FNOL→triage→investigation/coverage→reserving→adjudication→settlement→subrogation→closure.
+<strong>Money:</strong> premium (earned/unearned) ·
+deductible/retention/SIR · limit/sub-limit · coverage vs exclusion ·
+coinsurance/copay · reserves (case + IBNR). <strong>KPIs:</strong> loss
+ratio, expense ratio, <strong>combined ratio (&lt;100% =
+profit)</strong>. <strong>Underwriting:</strong> rating factors ·
+rate/rule/form · loss cost · adverse selection · moral hazard · GLM/GAM.
+<strong>Universal docs:</strong> application · <strong>ACORD
+forms</strong> · <strong>dec page</strong> · policy wording ·
+endorsement · <strong>COI</strong> · <strong>loss run</strong> ·
+<strong>SOV</strong> · <strong>FNOL/FROI</strong>. <strong>Regulatory
+backbone:</strong> US state-regulated (NAIC) · PII/PHI (HIPAA/GDPR) ·
+fair/explainable decisioning · anti-fraud · auditability.</p>
+<p>Shared vs specialized: principles, lifecycle shape, financial
+vocabulary, common docs, and baseline guardrails are
+<strong>shared</strong>; coverage triggers, jurisdiction, medical/legal
+nuance, and domain forms <strong>specialize</strong>.</p>
+<hr />
+<h2 id="appendix-b-citations-arxiv-ids">Appendix B — Citations (arXiv
+IDs)</h2>
+<p><strong>PEFT/preference/distillation:</strong> LoRA 2106.09685 ·
+QLoRA 2305.14314 · DoRA 2402.09353 · DPO 2305.18290 · ORPO 2403.07691 ·
+KTO 2402.01306 · SimPO 2405.14734 · GRPO/DeepSeekMath 2402.03300 ·
+MiniLLM 2306.08543 · GKD 2306.13649 · DistiLLM 2402.03898 ·
+Evol-Instruct 2304.12244 · DAPT 2004.10964 · Model Cards 1810.03993.
+<strong>Serving:</strong> PagedAttention/vLLM 2309.06180 · S-LoRA
+2311.03285 · Punica 2310.18547 · GPTQ 2210.17323 · AWQ 2306.00978 ·
+SmoothQuant 2211.10438 · SqueezeLLM 2306.07629 · Leviathan spec-dec
+2211.17192 · Medusa 2401.10774 · EAGLE 2401.15077 · xgrammar 2411.15100
+· SGLang 2312.07104. <strong>Routing:</strong> RouteLLM 2406.18665 ·
+FrugalGPT 2305.05176 · Hybrid-LLM 2404.14618 · AutoMix 2310.12963 ·
+RouterBench 2403.12031 · GraphRouter 2410.03834 · RouterDC 2409.19886.
+<strong>Context/KV:</strong> LLMLingua 2310.05736 · LongLLMLingua
+2310.06839 · LLMLingua-2 2403.12968 · H2O 2306.14048 · StreamingLLM
+2309.17453 · SnapKV 2404.14469 · PyramidKV 2406.02069 · Scissorhands
+2305.17118 · KIVI 2402.02750 · KVQuant 2401.18079 · MQA 1911.02150 · GQA
+2305.13245 · Longformer 2004.05150 · BigBird 2007.14062 · Mistral-7B
+2310.06825 · RECOMP 2310.04408. <strong>Insurance/IDP/finance:</strong>
+InsuranceQA 1905.13538 · LayoutLMv3 2204.08387 · Donut 2111.15664 ·
+DocLLM 2401.00908 · Docling 2408.09869 · Table Transformer 2110.00061 ·
+DocVQA 2007.00398 · FinGPT 2306.06031 · BloombergGPT 2303.17564 ·
+FinBERT 1908.10063 · BiRank fraud 2009.08313 · AutoFraudNet 2301.07526.
+OSS: github.com/lm-sys/RouteLLM · stanford-futuredata/FrugalGPT ·
+withmartian/routerbench · microsoft/LLMLingua · vllm-project/vllm ·
+sgl-project/sglang · S-LoRA/S-LoRA · huggingface/peft · huggingface/trl
+· EleutherAI/lm-evaluation-harness · AI4Finance-Foundation/FinGPT ·
+DS4SD/docling · microsoft/presidio · aurelio-labs/semantic-router.</p>
+<p><em>Benchmark numbers are author-reported. Vendor ROI is
+vendor-reported/directional. Some 2026-dated agentic-orchestration
+citations from the literature scan were omitted pending independent
+verification.</em></p>
+</body>
+</html>
