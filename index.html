@@ -350,6 +350,8 @@ stack</a></li>
 Multi-domain scaling</a></li>
 <li><a href="#the-indian-market" id="toc-the-indian-market">8.4 The
 Indian market</a></li>
+<li><a href="#runtime-agent-harness-and-llm-proxy" id="toc-runtime-agent-harness-and-llm-proxy">8.5 Runtime: agent harness
+and LLM proxy</a></li>
 </ul></li>
 <li><a href="#limitations-and-open-questions" id="toc-limitations-and-open-questions">9. Limitations and Open
 Questions</a></li>
@@ -1542,6 +1544,63 @@ adapter-and-schema concern at the orchestration layer and does not
 change the Model Ops or Cost Ops design. Government specifications (Bima
 Sugam, NHCX) should be confirmed against primary IRDAI/NHA sources
 before implementation.</p>
+<h3 id="runtime-agent-harness-and-llm-proxy">8.5 Runtime: agent harness
+and LLM proxy</h3>
+<p>The design so far specifies <em>what</em> to route and <em>how</em>
+to distill; this subsection proposes the concrete runtime that carries a
+claim from intake to adjudication. It has two planes — an LLM proxy (the
+model plane) and an agent harness (the control plane) — and both are
+self-hosted, consistent with the no-egress thesis.</p>
+<p><strong>LLM proxy — a self-hosted model plane.</strong> A single
+OpenAI-compatible gateway sits in front of every model server (the SLM
+pool, the in-house large-model pool, and the IDP models). LiteLLM Proxy
+(open source, self-hosted) is the reference choice; Envoy AI Gateway or
+Kong AI Gateway are infra-grade alternatives where a service mesh
+already exists. The proxy gives the harness one stable API while the
+model topology changes underneath it, and it owns the operational
+concerns that are deliberately kept <em>out</em> of the quality router:
+least-busy/weighted <strong>load balancing within a tier</strong>,
+timeouts, retries, and fallbacks; <strong>virtual keys per tenant and
+per domain</strong> with hard budgets and rate limits (the enforcement
+point for the backpressure and <span class="math inline">\(\tau\)</span>-tightening of Section 5.4); and
+<strong>cost attribution</strong> by registering the computed
+self-hosted $/1M as custom pricing (Section 7), so every call is costed
+in real GPU dollars. The tier/adapter decision (Section 4.3) runs as a
+<strong>pre-call hook</strong>: the router picks the tier, the proxy
+balances across that tier’s replicas. Guardrails (Presidio, NeMo) attach
+as pre- and post-call hooks at this boundary, so PII/PHI and
+jurisdiction checks are enforced in one place regardless of which model
+answers.</p>
+<p><strong>Agent harness — a two-layer control plane.</strong> Claims
+run for hours to days, must be auditable, and pause for human review, so
+the harness is split rather than run as one flat agent loop. The outer
+layer is <strong>durable case orchestration</strong> — Temporal, or
+Pydantic AI’s durable execution — which owns the claim as a workflow
+that survives restarts, retries idempotently, records a complete audit
+trail, and <em>pauses</em> at the HITL gate (Section 8.2, step 5),
+resuming only on an adjuster action. The inner layer is a
+<strong>per-turn agent loop</strong> — a LangGraph stateful graph —
+which holds the case state the continuation router (Section 4.4) reads,
+calls tools (Qdrant retrieval, Donut/LayoutLMv3 extraction,
+policy-database lookups), invokes the LLM through the proxy with guided
+decoding, and emits the per-turn observations (confidence,
+self-consistency, retrieval coverage, phase transition) the POMDP policy
+consumes. Separating the two means the expensive, long-lived durability
+machinery wraps the case while the cheap, stateless per-turn reasoning
+is where routing and tool use happen.</p>
+<p><strong>Request path.</strong> Intake event → durable workflow starts
+(Temporal) → per-turn graph (LangGraph): domain classifier → router
+pre-call hook picks tier/adapter → proxy (LiteLLM) load-balances to a
+replica → vLLM serves with the domain LoRA and guided decoding →
+guardrails post-call → observation returned to the continuation router,
+which stays, escalates, relaxes, or hands to a human. Telemetry uses
+OpenTelemetry GenAI semantic conventions into Langfuse/Phoenix, every
+span tagged <code>domain, tier, escalated, cache_hit</code>; adjuster
+corrections and escalations flow back as training data, closing the
+re-distillation loop (Section 4.5). The result is a stack in which the
+proxy is the only thing that talks to models, the harness is the only
+thing that talks to the proxy, and neither ever calls an external
+API.</p>
 <hr />
 <h2 id="limitations-and-open-questions">9. Limitations and Open
 Questions</h2>
@@ -1626,6 +1685,12 @@ sgl-project/sglang, S-LoRA/S-LoRA, huggingface/peft, huggingface/trl,
 EleutherAI/lm-evaluation-harness, AI4Finance-Foundation/FinGPT,
 DS4SD/docling, microsoft/presidio, aurelio-labs/semantic-router,
 AI4Bharat/IndicTrans2.</p>
+<p>Runtime harness and proxy: BerriAI/litellm (self-hosted LLM proxy),
+envoyproxy/ai-gateway, Kong/kong (AI Gateway), temporalio/temporal
+(durable orchestration), pydantic/pydantic-ai (durable,
+OpenTelemetry-native), langchain-ai/langgraph (stateful agent graphs),
+langfuse/langfuse, Arize-ai/phoenix, NVIDIA/NeMo-Guardrails,
+guardrails-ai/guardrails, open-telemetry GenAI semantic conventions.</p>
 <p>India (vendor and regulatory, non-arXiv): perfios.ai, zopper.com,
 riskcovry.com, signzy.com, mantralabsglobal.com, vymo.com; irdai.gov.in,
 abdm.gov.in, indiastack.org, uidai.gov.in, digilocker.gov.in; DPDP Act
